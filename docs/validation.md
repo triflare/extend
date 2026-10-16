@@ -111,13 +111,19 @@ Four things warn instead of failing:
 - `Handler "<opcode>" is exported but not declared in twext.yml`
 - `Block "<opcode>" restarts existing threads on an edge-activated hat, which TurboWarp ignores`
 
+`validate` and `build` also compile the project and scan the output for the patterns the hub flags on review: `fetch(`, `eval(`, `new Function`, `XMLHttpRequest`, and raw `http://` URLs. Each hit prints as a warning with its line in the compiled output, and never fails the build:
+
+```bash
+~ Compiled output line 42: Calls fetch() directly; prefer Scratch.fetch().
+```
+
 ## 🚫 What It Doesn't Check
 
-Validation reads the manifest and the source. It has nothing to do with a running Scratch project, so it doesn't check:
+Validation reads the manifest and the source, and (through the risky-pattern scan) the compiled output. It has nothing to do with a running Scratch project, so it doesn't check:
 
 - Whether the block text and the argument names line up. TurboWarp matches each `[NAME]` in `text` to a key of `arguments`; Twext passes both through and leaves it there.
 - Whether the handler's parameters are the ones you meant to destructure.
 - Whether a handler does the right thing with the arguments or calls TurboWarp's API correctly.
 - Whether the compiled file runs. Load the built extension in TurboWarp for that.
 
-One more shape of error comes from the compiler rather than the validator: a handler that Twext can't re-print from its source — a generator, for instance — passes `twext validate` and fails the build with `Could not parse handler function for block "<opcode>"`, or `... for method "<name>"` for an entry in `methods`. See [Handlers](./writing-blocks.md#-handlers).
+One more shape of error comes from the compiler rather than the validator: a handler that Twext can't re-print from its source — a generator, for instance — fails both `twext validate` and the build with `Could not parse handler function for block "<opcode>"`, or `... for method "<name>"` for an entry in `methods`. See [Handlers](./writing-blocks.md#-handlers).

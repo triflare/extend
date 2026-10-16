@@ -132,7 +132,7 @@ twext search utility
 
 `--sort` picks the order: `recent`, `downloads`, `updated`, or `name`. With no search terms at all, it lists the whole registry.
 
-`twext info` shows what the registry knows about one extension, its versions, and where to download it. Add a version to narrow it down, and use a range to see every version that matches:
+`twext info` shows what the registry knows about one extension — its versions with their download counts, and where to download it. Add a version to narrow it down, and use a range to see every version that matches:
 
 ```bash
 twext info @kamixfox/superutilities
@@ -140,7 +140,7 @@ twext info @kamixfox/superutilities@1.2.0
 twext info @kamixfox/superutilities@^1.0
 ```
 
-Neither `search` nor `info` needs a login. They send the stored token anyway when there is one, which is how the hub knows to include your own extension in the results.
+Neither `search` nor `info` needs a login. They send the stored token anyway when there is one, which is how the hub knows to include your own extension in the results. On an extension you own, `info` also lists the versions still waiting on review and the ones that were rejected, each marked with its review state; the extension listing shows a rejection's reason too.
 
 ## 📥 Checking Out Sources
 
@@ -209,7 +209,12 @@ Add `--scope yank` if the workflow also yanks, and `--expires-in-days 90` to giv
 TWEXTHUB_TOKEN=twext_... twext publish
 ```
 
-Keep it in your CI provider's secret store rather than in the repository. The `publish` and `yank` scopes are the only ones that exist, and a token can be revoked from the web UI if it leaks.
+Keep it in your CI provider's secret store rather than in the repository. The `publish` and `yank` scopes are the only ones that exist. `twext token list` shows the tokens on the account with their scopes and expiry, and `twext token revoke <id>` kills one without opening the web UI:
+
+```bash
+twext token list
+twext token revoke 7
+```
 
 > **Important:** A token can't accept the hub's Terms of Service. The first `publish` in a workflow fails until you've published once with `twext login` and agreed to the terms there.
 

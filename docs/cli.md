@@ -48,7 +48,7 @@ Validates the project, compiles it, and writes the result.
 | `-c`, `--config <file>` | Manifest to read. Defaults to `twext.yml`.                      |
 | `-o`, `--out <file>`    | Where to write the compiled extension, overriding `outputPath`. |
 
-Validation errors stop the build before anything is written. Warnings are printed and the build continues.
+Validation errors stop the build before anything is written. Warnings are printed and the build continues. The compiled output is scanned for `fetch(`, `eval(`, `new Function`, `XMLHttpRequest`, and raw `http://` URLs — the patterns the hub flags on review — and each hit prints as a warning.
 
 ### `twext validate`
 
@@ -60,13 +60,13 @@ Runs the same checks as `build` and writes nothing. See [Validation](./validatio
 
 ### `twext dev`
 
-Builds the project, then watches the sources and rebuilds whenever a `.js`, `.mjs`, `.cjs`, `.json`, `.yml`, or `.yaml` file changes. The compiled extension is served at `http://localhost:8090/extension.js`, so you can add a URL to TurboWarp instead of a file and reload to pick up each save. `Ctrl+C` stops the server.
+Builds the project, then watches the sources and rebuilds whenever a `.js`, `.mjs`, `.cjs`, `.json`, `.yml`, or `.yaml` file changes. The compiled extension is served at `http://localhost:8000/extension.js`, so you can add a URL to TurboWarp instead of a file and reload to pick up each save. `Ctrl+C` stops the server.
 
 | Option                  | What it does                                                    |
 | ----------------------- | --------------------------------------------------------------- |
 | `-c`, `--config <file>` | Manifest to read. Defaults to `twext.yml`.                      |
 | `-o`, `--out <file>`    | Where to write the compiled extension, overriding `outputPath`. |
-| `-p`, `--port <number>` | Port to serve on. Defaults to `8090`; `0` picks a free one.     |
+| `-p`, `--port <number>` | Port to serve on. Defaults to `8000`; `0` picks a free one.     |
 
 The server sends `Cache-Control: no-store` and `Access-Control-Allow-Origin: *`, so TurboWarp won't hold onto a stale copy. A build that fails keeps the last good extension being served and prints the error; the next build that succeeds replaces it.
 
@@ -92,6 +92,8 @@ These commands talk to a TwextHub. [Using TwextHub](./twexthub.md) walks through
 | `twext checkout <id>[@version] [directory]` | Download a published version's sources into a directory.              |
 | `twext notifications`                       | List account notifications.                                           |
 | `twext token create`                        | Create an automation token for CI.                                    |
+| `twext token list`                          | List the account's automation tokens.                                 |
+| `twext token revoke <id>`                   | Revoke an automation token.                                           |
 | `twext org create <namespace>`              | Create an organization; you become its first owner.                   |
 | `twext org list`                            | List the organizations on the hub.                                    |
 | `twext org info <namespace>`                | Show an organization's profile.                                       |
@@ -104,28 +106,29 @@ These commands talk to a TwextHub. [Using TwextHub](./twexthub.md) walks through
 
 ### Options
 
-| Option                     | Used by                                                              | What it does                                                                   |
-| -------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `-u`, `--url <base>`       | all hub commands                                                     | Hub API base URL.                                                              |
-| `-n`, `--namespace <name>` | `login`, `signup`, `publish`, `checkout`, `deprecate`, `tag`, `info` | Namespace to act as — the account, or an organization to publish under.        |
-| `--password <password>`    | `login`, `signup`                                                    | Password. Prompts when omitted.                                                |
-| `--display-name <name>`    | `signup`, `org create`, `org update`                                 | Display name for the new account or organization.                              |
-| `--token <token>`          | all authenticated hub commands                                       | Bearer token, instead of the stored one.                                       |
-| `--read`                   | `notifications`                                                      | Mark the listed notifications as read.                                         |
-| `--sort <key>`             | `search`, `org extensions`                                           | `recent`, `downloads`, `updated`, or `name`.                                   |
-| `--clear`                  | `deprecate`                                                          | Remove the deprecation message instead of setting one.                         |
-| `--bio <text>`             | `org create`, `org update`                                           | Organization bio. An empty value clears it.                                    |
-| `--website <url>`          | `org create`, `org update`                                           | Organization website. An empty value clears it.                                |
-| `--github <user>`          | `org create`, `org update`                                           | GitHub username shown on the profile. An empty value clears it.                |
-| `--license <id>`           | `org extensions`                                                     | Only extensions under this SPDX license, e.g. `MIT`.                           |
-| `-f`, `--force`            | `init`, `org delete`                                                 | Overwrite existing files; required by `org delete`.                            |
-| `--name <name>`            | `token create`                                                       | Name for the token. Defaults to `CI`.                                          |
-| `--scope <scope>`          | `token create`                                                       | `publish` and/or `yank`, repeatable or comma-separated. Defaults to `publish`. |
-| `--expires-in-days <days>` | `token create`                                                       | Lifetime of the token.                                                         |
+| Option                     | Used by                                                                 | What it does                                                                   |
+| -------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `-u`, `--url <base>`       | all hub commands                                                        | Hub API base URL.                                                              |
+| `-n`, `--namespace <name>` | `login`, `signup`, `publish`, `checkout`, `deprecate`, `tag`, `info`    | Namespace to act as — the account, or an organization to publish under.        |
+| `--password <password>`    | `login`, `signup`                                                       | Password. Prompts when omitted.                                                |
+| `--display-name <name>`    | `signup`, `org create`, `org update`                                    | Display name for the new account or organization.                              |
+| `--token <token>`          | all authenticated hub commands                                          | Bearer token, instead of the stored one.                                       |
+| `--read`                   | `notifications`                                                         | Mark the listed notifications as read.                                         |
+| `--json`                   | `info`, `search`, `notifications`, `org list`, `tag list`, `token list` | Print the result as JSON instead of the human-readable listing.                |
+| `--sort <key>`             | `search`, `org extensions`                                              | `recent`, `downloads`, `updated`, or `name`.                                   |
+| `--clear`                  | `deprecate`                                                             | Remove the deprecation message instead of setting one.                         |
+| `--bio <text>`             | `org create`, `org update`                                              | Organization bio. An empty value clears it.                                    |
+| `--website <url>`          | `org create`, `org update`                                              | Organization website. An empty value clears it.                                |
+| `--github <user>`          | `org create`, `org update`                                              | GitHub username shown on the profile. An empty value clears it.                |
+| `--license <id>`           | `org extensions`                                                        | Only extensions under this SPDX license, e.g. `MIT`.                           |
+| `-f`, `--force`            | `init`, `org delete`                                                    | Overwrite existing files; required by `org delete`.                            |
+| `--name <name>`            | `token create`                                                          | Name for the token. Defaults to `CI`.                                          |
+| `--scope <scope>`          | `token create`                                                          | `publish` and/or `yank`, repeatable or comma-separated. Defaults to `publish`. |
+| `--expires-in-days <days>` | `token create`                                                          | Lifetime of the token.                                                         |
 
 `login` and `signup` prompt for anything you leave out, and `login` reads the stored namespace when you don't pass `-n`.
 
-`publish`, `yank`, `deprecate`, and the `tag` subcommands all need a token. `checkout` needs one too, even for a public extension. `search` and `info` don't, though they send the stored token when there is one so the hub can show you your own extension. Of the `org` subcommands, `create`, `update`, `delete`, `add` and `remove` need a token; `list`, `info` and `owners` don't, and `extensions` sends the token for the same reason as `search` and `info`.
+`publish`, `yank`, `deprecate`, the `tag` subcommands, and `token` all need a token. `checkout` needs one too, even for a public extension. `search` and `info` don't, though they send the stored token when there is one so the hub can show you your own extension — on an extension you own, `info` also lists your pending and rejected versions, marked with their review state. Of the `org` subcommands, `create`, `update`, `delete`, `add` and `remove` need a token; `list`, `info` and `owners` don't, and `extensions` sends the token for the same reason as `search` and `info`.
 
 ### Extension Specs
 

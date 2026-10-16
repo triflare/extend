@@ -237,6 +237,14 @@ export async function createAutomationToken(base, token, body) {
   return hubRequest(base, "/tokens", { method: "POST", token, body });
 }
 
+export async function listAutomationTokens(base, token) {
+  return allPages(base, "/tokens?limit=50", token);
+}
+
+export async function revokeAutomationToken(base, token, id) {
+  return hubRequest(base, `/tokens/${encodeURIComponent(id)}`, { method: "DELETE", token });
+}
+
 export async function revokeCurrentSession(base, token) {
   return hubRequest(base, "/sessions/current", { method: "DELETE", token });
 }
@@ -277,9 +285,18 @@ async function allPages(base, path, token) {
 }
 
 // Highest SemVer first, so the first entry is the one a range resolves to.
-export async function listVersions(base, namespace, id, range, token, { all = false } = {}) {
+// The status filter only answers an owner or an admin; anyone else gets a 403.
+export async function listVersions(
+  base,
+  namespace,
+  id,
+  range,
+  token,
+  { all = false, status } = {},
+) {
   const query = new URLSearchParams({ limit: "50" });
   if (range) query.set("range", range);
+  if (status) query.set("status", status);
   const path = `/@${namespace}/${id}/versions?${query}`;
   return all ? allPages(base, path, token) : hubRequest(base, path, { token });
 }

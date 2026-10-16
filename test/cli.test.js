@@ -89,6 +89,42 @@ test("build without a config exits nonzero with a helpful error", () => {
   }
 });
 
+test("validate and build warn about risky patterns without failing", () => {
+  const { dir, cleanup } = tmpProject();
+  try {
+    const out = join(dir, "risky.js");
+    const validate = runCli(["validate"], fixture("risky"));
+    assert.equal(validate.status, 0, validate.stderr);
+    assert.match(validate.stderr, /Compiled output line \d+: Calls fetch\(\) directly/);
+    assert.match(validate.stderr, /Compiled output line \d+: Opens a raw XMLHttpRequest/);
+    assert.match(validate.stderr, /Compiled output line \d+: References a plaintext http:\/\//);
+
+    const build = runCli(["build", "-o", out], fixture("risky"));
+    assert.equal(build.status, 0, build.stderr);
+    assert.match(build.stderr, /Calls fetch\(\) directly/);
+    assert.ok(existsSync(out));
+  } finally {
+    cleanup();
+  }
+});
+
+test("a handler the compiler can't re-print fails validate and build", () => {
+  const validate = runCli(["validate"], fixture("generator"));
+  assert.equal(validate.status, 1);
+  assert.match(validate.stderr, /Could not parse handler function for block "spin"/);
+
+  const { dir, cleanup } = tmpProject();
+  try {
+    const out = join(dir, "generator.js");
+    const build = runCli(["build", "-o", out], fixture("generator"));
+    assert.equal(build.status, 1);
+    assert.match(build.stderr, /Could not parse handler function for block "spin"/);
+    assert.ok(!existsSync(out), "a compile failure writes no output");
+  } finally {
+    cleanup();
+  }
+});
+
 test("build writes to an explicit -o path", () => {
   const { dir, cleanup } = tmpProject();
   try {

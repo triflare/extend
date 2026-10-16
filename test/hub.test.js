@@ -1350,6 +1350,88 @@ test("token create sends scopes and prints the token once", async () => {
   }
 });
 
+test("token list prints each token with its scopes and expiry", async () => {
+  const { dir, cleanup } = tmpHome();
+  const hub = await createHub([
+    {
+      method: "GET",
+      path: "/tokens",
+      reply: {
+        status: 200,
+        body: {
+          data: [
+            {
+              id: "7",
+              name: "CI",
+              scopes: ["publish"],
+              createdAt: "2026-01-01T00:00:00Z",
+              expiresAt: "2026-04-01T00:00:00Z",
+              lastUsedAt: "2026-02-01T00:00:00Z",
+            },
+            {
+              id: "8",
+              name: "yank-bot",
+              scopes: ["yank"],
+              createdAt: "2026-02-01T00:00:00Z",
+              expiresAt: null,
+              lastUsedAt: null,
+            },
+          ],
+          _links: { next: null },
+        },
+      },
+    },
+  ]);
+  try {
+    const result = await runCli(["token", "list", "--url", hub.url], {
+      env: { HOME: dir, TWEXTHUB_TOKEN: "sess-1" },
+    });
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /2 tokens/);
+    assert.match(
+      result.stdout,
+      /CI \(id 7\) publish — created 2026-01-01, expires 2026-04-01, last used 2026-02-01/,
+    );
+    assert.match(result.stdout, /yank-bot \(id 8\) yank — created 2026-02-01, no expiry/);
+    const request = hub.requests.find((r) => r.path === "/tokens");
+    assert.equal(request.authorization, "Bearer sess-1");
+  } finally {
+    cleanup();
+    await hub.close();
+  }
+});
+
+test("token revoke deletes the named token", async () => {
+  const { dir, cleanup } = tmpHome();
+  const hub = await createHub([{ method: "DELETE", path: "/tokens/7", reply: { status: 204 } }]);
+  try {
+    const result = await runCli(["token", "revoke", "7", "--url", hub.url], {
+      env: { HOME: dir, TWEXTHUB_TOKEN: "sess-1" },
+    });
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /Revoked token 7/);
+    const request = hub.requests.find((r) => r.method === "DELETE");
+    assert.equal(request.path, "/tokens/7");
+    assert.equal(request.authorization, "Bearer sess-1");
+  } finally {
+    cleanup();
+    await hub.close();
+  }
+});
+
+test("token revoke refuses an id that is not a token id", async () => {
+  const { dir, cleanup } = tmpHome();
+  try {
+    const result = await runCli(["token", "revoke", "current", "--url", "https://hub.test"], {
+      env: { HOME: dir, TWEXTHUB_TOKEN: "sess-1" },
+    });
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /twext token revoke/);
+  } finally {
+    cleanup();
+  }
+});
+
 test("publish packs sources and leaves out build output, dependencies and dotfiles", async () => {
   const { dir, cleanup } = tmpHome();
   const project = mkdtempSync(join(tmpdir(), "twext-project-"));
@@ -1725,6 +1807,7 @@ test("info prints extension detail, a single version and range matches", async (
         version: "1.0.0",
         status: "published",
         publishedAt: "2026-09-27T00:00:00Z",
+        downloads: 12,
         dist: { downloadUrl: "https://hub.test/x.js", digest: "sha256:abc" },
       },
       {
@@ -1732,6 +1815,7 @@ test("info prints extension detail, a single version and range matches", async (
         status: "deprecated",
         deprecation: "use 1.0.0",
         createdAt: "2026-09-01T00:00:00Z",
+        downloads: 3,
       },
     ],
   };
@@ -1749,6 +1833,7 @@ test("info prints extension detail, a single version and range matches", async (
           version: "1.0.0",
           status: "published",
           createdAt: "2026-09-27T00:00:00Z",
+          downloads: 12,
           dist: { downloadUrl: "https://hub.test/x.js", digest: "sha256:abc" },
         },
       },
@@ -1756,16 +1841,25 @@ test("info prints extension detail, a single version and range matches", async (
     {
       method: "GET",
       path: "/@acme/superutilities/versions",
-      reply: {
-        status: 200,
-        body: {
-          data: [
-            { version: "1.2.0", status: "published", publishedAt: "2026-10-01T00:00:00Z" },
-            { version: "1.1.0", status: "published", publishedAt: "2026-09-28T00:00:00Z" },
-          ],
-          _links: {},
-        },
-      },
+      reply: (request) =>
+        // The status filter only answers an owner; this test's caller is a stranger.
+        new URLSearchParams(request.query).has("status")
+          ? { status: 403, body: { detail: "Only an owner can filter versions by status." } }
+          : {
+              status: 200,
+              body: {
+                data: [
+                  {
+                    version: "1.2.0",
+                    status: "published",
+                    publishedAt: "2026-10-01T00:00:00Z",
+                    downloads: 40,
+                  },
+                  { version: "1.1.0", status: "published", publishedAt: "2026-09-28T00:00:00Z" },
+                ],
+                _links: {},
+              },
+            },
     },
   ]);
   try {
@@ -1782,8 +1876,8 @@ test("info prints extension detail, a single version and range matches", async (
     );
     assert.match(full.stdout, /Super Utilities @acme\/superutilities/);
     assert.match(full.stdout, /versions:/);
-    assert.match(full.stdout, /1\.0\.0 published \(2026-09-27\)/);
-    assert.match(full.stdout, /0\.9\.0 deprecated — use 1\.0\.0/);
+    assert.match(full.stdout, /1\.0\.0 published \(2026-09-27, 12 downloads\)/);
+    assert.match(full.stdout, /0\.9\.0 deprecated — use 1\.0\.0 \(2026-09-01, 3 downloads\)/);
     assert.match(full.stdout, /download https:\/\/hub\.test\/x\.js/);
 
     const one = await runCli(
@@ -1792,6 +1886,7 @@ test("info prints extension detail, a single version and range matches", async (
     );
     assert.equal(one.code, 0, one.stderr);
     assert.match(one.stdout, /status published/);
+    assert.match(one.stdout, /12 downloads/);
     assert.match(one.stdout, /digest sha256:abc/);
 
     const ranged = await runCli(
@@ -1800,7 +1895,11 @@ test("info prints extension detail, a single version and range matches", async (
     );
     assert.equal(ranged.code, 0, ranged.stderr);
     assert.match(ranged.stdout, /2 versions of @acme\/superutilities match \^1\.2/);
-    const list = hub.requests.find((r) => r.path === "/@acme/superutilities/versions");
+    assert.match(ranged.stdout, /1\.2\.0 published \(2026-10-01, 40 downloads\)/);
+    assert.match(ranged.stdout, /1\.1\.0 published \(2026-09-28\)/);
+    const list = hub.requests.find(
+      (r) => r.path === "/@acme/superutilities/versions" && r.query.includes("range="),
+    );
     assert.equal(list.query, "limit=50&range=%5E1.2");
 
     const bad = await runCli(["info", "../../admin", "--namespace", "acme", "--url", hub.url], {
@@ -1812,6 +1911,171 @@ test("info prints extension detail, a single version and range matches", async (
       hub.requests.filter((r) => r.path === "/@acme/superutilities").length,
       1,
       "a bad spec never reaches the hub",
+    );
+  } finally {
+    cleanup();
+    await hub.close();
+  }
+});
+
+test("info shows an owner their pending and rejected versions", async () => {
+  const { dir, cleanup } = tmpHome();
+  const detail = {
+    namespace: "acme",
+    id: "superutilities",
+    name: "Super Utilities",
+    version: "2.0.0",
+    versions: [
+      { version: "2.0.0", status: "published", publishedAt: "2026-09-27T00:00:00Z", downloads: 12 },
+      {
+        version: "1.0.0",
+        status: "deprecated",
+        deprecation: "use 2.0.0",
+        createdAt: "2026-01-01T00:00:00Z",
+        downloads: 3,
+      },
+    ],
+  };
+  const pending = { version: "3.0.0", status: "pending", createdAt: "2026-10-01T00:00:00Z" };
+  const rejected = {
+    version: "2.1.0",
+    status: "rejected",
+    rejectionReason: "breaks the review rules",
+    createdAt: "2026-09-30T00:00:00Z",
+  };
+  const hub = await createHub([
+    { method: "GET", path: "/@acme/superutilities", reply: { status: 200, body: detail } },
+    {
+      method: "GET",
+      path: "/@acme/superutilities/versions",
+      reply: (request) => {
+        const status = new URLSearchParams(request.query).get("status");
+        if (status === "pending") return { status: 200, body: { data: [pending], _links: {} } };
+        if (status === "rejected") return { status: 200, body: { data: [rejected], _links: {} } };
+        if (status !== null) {
+          return { status: 403, body: { detail: "Only an owner can filter versions by status." } };
+        }
+        return { status: 200, body: { data: detail.versions, _links: {} } };
+      },
+    },
+  ]);
+  try {
+    const owner = { HOME: dir, TWEXTHUB_NAMESPACE: "acme", TWEXTHUB_TOKEN: "sess-1" };
+
+    const full = await runCli(["info", "superutilities", "--namespace", "acme", "--url", hub.url], {
+      env: owner,
+    });
+    assert.equal(full.code, 0, full.stderr);
+    assert.match(full.stdout, /3\.0\.0 pending \(2026-10-01\)/);
+    assert.match(full.stdout, /2\.1\.0 rejected — breaks the review rules \(2026-09-30\)/);
+    assert.match(full.stdout, /2\.0\.0 published \(2026-09-27, 12 downloads\)/);
+    assert.match(full.stdout, /1\.0\.0 deprecated — use 2\.0\.0 \(2026-01-01, 3 downloads\)/);
+    const listed = full.stdout
+      .split("\n")
+      .filter((line) => /^ {2}• \d+\.\d+\.\d+ /.test(line))
+      .map((line) => line.trim().split(" ")[1]);
+    assert.deepEqual(listed, ["3.0.0", "2.1.0", "2.0.0", "1.0.0"], "versions list highest first");
+
+    const json = await runCli(
+      ["info", "superutilities", "--namespace", "acme", "--url", hub.url, "--json"],
+      { env: owner },
+    );
+    assert.equal(json.code, 0, json.stderr);
+    assert.deepEqual(
+      JSON.parse(json.stdout).versions.map((v) => v.version),
+      ["3.0.0", "2.1.0", "2.0.0", "1.0.0"],
+    );
+
+    const ranged = await runCli(
+      ["info", "superutilities@*", "--namespace", "acme", "--url", hub.url],
+      { env: owner },
+    );
+    assert.equal(ranged.code, 0, ranged.stderr);
+    assert.match(ranged.stdout, /4 versions of @acme\/superutilities match \*/);
+    assert.match(ranged.stdout, /3\.0\.0 pending \(2026-10-01\)/);
+    assert.match(ranged.stdout, /2\.1\.0 rejected \(2026-09-30\)/);
+
+    const stranger = await runCli(
+      ["info", "superutilities", "--namespace", "acme", "--url", hub.url],
+      { env: { HOME: dir, TWEXTHUB_NAMESPACE: "acme" } },
+    );
+    assert.equal(stranger.code, 0, stranger.stderr);
+    assert.doesNotMatch(stranger.stdout, /pending|rejected/);
+    assert.match(stranger.stdout, /2\.0\.0 published \(2026-09-27, 12 downloads\)/);
+
+    const statusRequests = hub.requests.filter((r) => r.query.includes("status="));
+    assert.equal(
+      statusRequests.length,
+      6,
+      "three owner runs each read pending and rejected; a stranger reads neither",
+    );
+    for (const request of statusRequests) {
+      assert.equal(request.authorization, "Bearer sess-1");
+    }
+    assert.deepEqual(
+      statusRequests.map((r) => new URLSearchParams(r.query).get("status")),
+      ["pending", "rejected", "pending", "rejected", "pending", "rejected"],
+    );
+  } finally {
+    cleanup();
+    await hub.close();
+  }
+});
+
+test("info reads every page of an owner's pending versions", async () => {
+  const { dir, cleanup } = tmpHome();
+  const detail = {
+    namespace: "acme",
+    id: "superutilities",
+    name: "Super Utilities",
+    version: "1.0.0",
+    versions: [{ version: "1.0.0", status: "published", publishedAt: "2026-09-27T00:00:00Z" }],
+  };
+  const hub = await createHub([
+    { method: "GET", path: "/@acme/superutilities", reply: { status: 200, body: detail } },
+    {
+      method: "GET",
+      path: "/@acme/superutilities/versions",
+      reply: (request) => {
+        const query = new URLSearchParams(request.query);
+        const status = query.get("status");
+        if (status === "pending" && query.has("offset")) {
+          return {
+            status: 200,
+            body: {
+              data: [{ version: "2.9.0", status: "pending", createdAt: "2026-09-29T00:00:00Z" }],
+              _links: {},
+            },
+          };
+        }
+        if (status === "pending") {
+          return {
+            status: 200,
+            body: {
+              data: [{ version: "3.0.0", status: "pending", createdAt: "2026-10-01T00:00:00Z" }],
+              _links: { next: "?status=pending&limit=50&offset=1" },
+            },
+          };
+        }
+        if (status === "rejected") return { status: 200, body: { data: [], _links: {} } };
+        return { status: 200, body: { data: detail.versions, _links: {} } };
+      },
+    },
+  ]);
+  try {
+    const result = await runCli(
+      ["info", "superutilities", "--namespace", "acme", "--url", hub.url],
+      {
+        env: { HOME: dir, TWEXTHUB_NAMESPACE: "acme", TWEXTHUB_TOKEN: "sess-1" },
+      },
+    );
+    assert.equal(result.code, 0, result.stderr);
+    assert.match(result.stdout, /3\.0\.0 pending \(2026-10-01\)/);
+    assert.match(result.stdout, /2\.9\.0 pending \(2026-09-29\)/);
+    assert.equal(
+      hub.requests.filter((r) => new URLSearchParams(r.query).get("status") === "pending").length,
+      2,
+      "both pages of the pending list are read",
     );
   } finally {
     cleanup();
@@ -1980,6 +2244,7 @@ test("info and search collect every page and retain credentials and query parame
   try {
     const env = { HOME: dir, TWEXTHUB_NAMESPACE: "fallback", TWEXTHUB_TOKEN: "selected-token" };
     for (const range of ["1.2.x", "1.2"]) {
+      const before = hub.requests.length;
       const info = await runCli(
         ["info", `superutilities@${range}`, "-n", "acme", "--url", `${hub.url}/api/v1`],
         { env },
@@ -1987,9 +2252,9 @@ test("info and search collect every page and retain credentials and query parame
       assert.equal(info.code, 0, info.stderr);
       assert.match(info.stdout, /3 versions of @acme\/superutilities/);
       assert.match(info.stdout, /1\.2\.1 published/);
-      assert.ok(
-        hub.requests.slice(-3).every((r) => new URLSearchParams(r.query).get("range") === range),
-      );
+      const reads = hub.requests.slice(before);
+      assert.equal(reads.length, 9, "three pages each of the base, pending and rejected lists");
+      assert.ok(reads.every((r) => new URLSearchParams(r.query).get("range") === range));
     }
     const search = await runCli(
       ["search", "blocks", "--sort", "downloads", "--url", `${hub.url}/api/v1`],
@@ -1998,7 +2263,7 @@ test("info and search collect every page and retain credentials and query parame
     assert.equal(search.code, 0, search.stderr);
     assert.match(search.stdout, /3 extensions matching "blocks"/);
     assert.match(search.stdout, /Result 3/);
-    assert.equal(hub.requests.length, 9);
+    assert.equal(hub.requests.length, 21);
     assert.ok(hub.requests.every((r) => r.authorization === "Bearer selected-token"));
     assert.ok(
       hub.requests.slice(-3).every((r) => new URLSearchParams(r.query).get("sort") === "downloads"),
@@ -2446,6 +2711,154 @@ test("org add and remove work on the owner list, and the hub's refusals reach th
     const unknown = await runCli(["org", "frobnicate", "--url", hub.url], { env });
     assert.equal(unknown.code, 1);
     assert.match(unknown.stderr, /Unknown org subcommand "frobnicate"/);
+  } finally {
+    cleanup();
+    await hub.close();
+  }
+});
+
+test("--json prints the hub payload for the read commands", async () => {
+  const { dir, cleanup } = tmpHome();
+  const detail = {
+    namespace: "acme",
+    id: "superutilities",
+    name: "Super Utilities",
+    version: "1.0.0",
+    versions: [{ version: "1.0.0", status: "published", downloads: 12 }],
+  };
+  const hub = await createHub([
+    { method: "GET", path: "/@acme/superutilities", reply: { status: 200, body: detail } },
+    {
+      method: "GET",
+      path: "/@acme/superutilities/versions",
+      reply: {
+        status: 200,
+        body: { data: [{ version: "1.0.0", status: "published" }], _links: { next: null } },
+      },
+    },
+    {
+      method: "GET",
+      path: "/@acme/superutilities/tags",
+      reply: { status: 200, body: { latest: "1.0.0" } },
+    },
+    {
+      method: "GET",
+      path: "/search",
+      reply: {
+        status: 200,
+        body: {
+          data: [{ namespace: "acme", id: "superutilities", name: "Super Utilities" }],
+          _links: { next: null },
+        },
+      },
+    },
+    {
+      method: "GET",
+      path: "/notifications",
+      reply: {
+        status: 200,
+        body: {
+          data: [
+            {
+              id: "5",
+              kind: "review.approved",
+              message: "superutilities@1.0.0 was approved",
+              read: false,
+              createdAt: "2026-01-01T00:00:00Z",
+            },
+          ],
+          unreadCount: 1,
+          _links: { next: null },
+        },
+      },
+    },
+    {
+      method: "GET",
+      path: "/orgs",
+      reply: {
+        status: 200,
+        body: { data: [{ namespace: "acme", displayName: "Acme" }], _links: { next: null } },
+      },
+    },
+    {
+      method: "GET",
+      path: "/tokens",
+      reply: {
+        status: 200,
+        body: {
+          data: [
+            {
+              id: "7",
+              name: "CI",
+              scopes: ["publish"],
+              createdAt: "2026-01-01T00:00:00Z",
+              expiresAt: null,
+              lastUsedAt: null,
+            },
+          ],
+          _links: { next: null },
+        },
+      },
+    },
+  ]);
+  try {
+    const env = { HOME: dir, TWEXTHUB_NAMESPACE: "acme", TWEXTHUB_TOKEN: "sess-1" };
+    const json = (result) => {
+      assert.equal(result.code, 0, result.stderr);
+      return JSON.parse(result.stdout);
+    };
+
+    const info = await runCli(
+      ["info", "superutilities", "--namespace", "acme", "--url", hub.url, "--json"],
+      { env },
+    );
+    assert.deepEqual(json(info), detail);
+
+    const ranged = await runCli(
+      ["info", "superutilities@^1.0", "--namespace", "acme", "--url", hub.url, "--json"],
+      { env },
+    );
+    assert.deepEqual(json(ranged), [{ version: "1.0.0", status: "published" }]);
+
+    const search = await runCli(["search", "--url", hub.url, "--json"], { env });
+    assert.deepEqual(json(search), [
+      { namespace: "acme", id: "superutilities", name: "Super Utilities" },
+    ]);
+
+    const notifications = await runCli(["notifications", "--url", hub.url, "--json"], { env });
+    assert.deepEqual(json(notifications), {
+      unreadCount: 1,
+      data: [
+        {
+          id: "5",
+          kind: "review.approved",
+          message: "superutilities@1.0.0 was approved",
+          read: false,
+          createdAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+    });
+
+    const orgs = await runCli(["org", "list", "--url", hub.url, "--json"], { env });
+    assert.deepEqual(json(orgs), [{ namespace: "acme", displayName: "Acme" }]);
+
+    const tags = await runCli(["tag", "list", "--url", hub.url, "--json"], {
+      cwd: fixture("basic"),
+      env,
+    });
+    assert.deepEqual(json(tags), { latest: "1.0.0" });
+
+    const tokens = await runCli(["token", "list", "--url", hub.url, "--json"], { env });
+    assert.deepEqual(json(tokens), [
+      {
+        id: "7",
+        name: "CI",
+        scopes: ["publish"],
+        createdAt: "2026-01-01T00:00:00Z",
+        expiresAt: null,
+        lastUsedAt: null,
+      },
+    ]);
   } finally {
     cleanup();
     await hub.close();

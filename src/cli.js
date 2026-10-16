@@ -36,6 +36,7 @@ const OPTIONS = {
   scope: { type: "string", multiple: true },
   "expires-in-days": { type: "string" },
   read: { type: "boolean" },
+  json: { type: "boolean" },
   sort: { type: "string" },
   clear: { type: "boolean" },
   bio: { type: "string" },
@@ -52,7 +53,7 @@ Usage: ${product.command} <command> [options]
 
 Commands:
   build         Validate and compile the extension (default)
-  dev           Rebuild on change and serve the extension at http://localhost:8090
+  dev           Rebuild on change and serve the extension at http://localhost:${product.defaults.devPort}
   validate      Check blocks against the entryPoint handlers
   init          Scaffold a new project in a directory
   login         Sign in to a TwextHub hub
@@ -66,14 +67,14 @@ Commands:
   info          Registry info for an extension (twext info myext@^1.2)
   search        Search published extensions (twext search turbo)
   notifications List hub notifications (--read marks them read)
-  token         Create an automation token for CI (e.g. twext token create)
+  token         Manage automation tokens (create, list, revoke)
   org           Manage organizations (e.g. twext org create acme)
   help          Show this help
 
 Options:
   -c, --config <file>      Path to ${product.defaults.configFilename} (default: ${product.defaults.configFilename})
   -o, --out <file>         Override the output path (build, dev)
-  -p, --port <number>      Port for the dev server (default: 8090)
+  -p, --port <number>      Port for the dev server (default: ${product.defaults.devPort})
   -f, --force              Overwrite existing files (init only); confirms org delete
   -u, --url <base>         Hub API base URL (default: https://twexts.sdisk.us/api/v2)
   -n, --namespace <name>   Namespace to act as (login/signup/publish; login default: stored)
@@ -84,6 +85,7 @@ Options:
   --scope <scope>          Token scope, repeatable (token create only; default: publish)
   --expires-in-days <days> Token lifetime (token create only)
   --read                   Mark the listed notifications as read (notifications only)
+  --json                   Print the result as JSON (info, search, notifications, org list, tag list, token list)
   --sort <key>             Order: recent, downloads, updated, name (search, org extensions)
   --clear                  Drop a deprecation message (deprecate only)
   --bio <text>             Organization bio, "" clears it (org create/update)
@@ -165,7 +167,9 @@ async function main(args) {
     case "notifications":
       return (await notificationsCommand(product, values, log)) ? 0 : 1;
     case "token":
-      return (await tokenCommand(product, positionals[1], values, log)) ? 0 : 1;
+      return (await tokenCommand(product, positionals[1], positionals.slice(2), values, log))
+        ? 0
+        : 1;
     case "org":
       return (await orgCommand(product, positionals[1], positionals.slice(2), values, log)) ? 0 : 1;
     default:
