@@ -28,9 +28,25 @@ function stringify(args) {
     .join(" ");
 }
 
+// styleText's own escape sequence for a color, so a line can be re-colored
+// after a nested brand-colored word resets the foreground.
+function colorOpen(color, stream) {
+  const marker = "\u0000";
+  const sample = styleText(color, marker, { stream });
+  const index = sample.indexOf(marker);
+  return index > 0 ? sample.slice(0, index) : "";
+}
+
 function formatLine(line, { color, dim }, stream) {
   let formatted = line;
-  if (color) formatted = styleText(color, formatted, { stream });
+  if (color) {
+    const open = colorOpen(color, stream);
+    formatted = styleText(color, formatted, { stream });
+    if (open) {
+      formatted = formatted.replaceAll("\x1b[39m", `\x1b[39m${open}`);
+      if (formatted.endsWith(open)) formatted = formatted.slice(0, -open.length);
+    }
+  }
   if (dim) formatted = styleText("dim", formatted, { stream });
   return formatted;
 }

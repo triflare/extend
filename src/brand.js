@@ -37,3 +37,25 @@ export function brandingColors(product = brand()) {
     tertiary: colors.tertiary ?? FALLBACK_COLORS.tertiary,
   };
 }
+
+// Paints a product name or command in three equal bands taken straight from the
+// logo palette. styleText drops the colors when the stream can't render them,
+// so piped output and CI logs stay plain text.
+export function brandText(text, stream = process.stdout) {
+  const { primary, secondary, tertiary } = brandingColors();
+  const palette = [primary, secondary, tertiary];
+  const chars = Array.from(text);
+  if (chars.length === 0) return text;
+
+  const bandFor = (index) =>
+    Math.min(palette.length - 1, Math.floor((index * palette.length) / chars.length));
+  const runs = [];
+  let start = 0;
+  for (let index = 1; index <= chars.length; index += 1) {
+    if (index === chars.length || bandFor(index) !== bandFor(start)) {
+      runs.push(styleText(palette[bandFor(start)], chars.slice(start, index).join(""), { stream }));
+      start = index;
+    }
+  }
+  return runs.join("");
+}

@@ -72,7 +72,7 @@ node src/cli.js validate -c path/to/project/extend.yml
 | `test/`, `test-fixtures/` | The test suite and the projects it runs against.                                                                     |
 | `docs/`                   | The documentation in this directory.                                                                                 |
 
-`product.yml` deserves a note: `extend --version` prints its `version`, the help text prints its `name` and `tagline`, `defaults` supplies the config filename, the output directory, and the dev server port, and `branding.colors` supplies the logo palette that seeds new projects and the default block color. The Unicode log glyphs come from `symbols`. A change to a default there changes Extend's behavior, so it needs a test.
+`product.yml` deserves a note: `extend --version` prints its `version`, the help text prints its `name` and `tagline`, `defaults` supplies the config filename, the output directory, and the dev server port, and `branding.colors` supplies the logo palette that seeds new projects, the default block color, and the colors behind every CLI mention of the product name and command. The Unicode log glyphs come from `symbols`. A change to a default there changes Extend's behavior, so it needs a test.
 
 ## 🧪 Tests
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
 import { resolve } from "node:path";
+import { brandText } from "./brand.js";
 import { loadProduct } from "./config.js";
 import { createLogger } from "./log.js";
 import { initCommand } from "./commands/init.js";
@@ -17,10 +18,10 @@ const OPTIONS = {
   port: { type: "string", short: "p" },
 };
 
-function helpText(product) {
-  return `${product.name} ${product.version} — ${product.tagline}
+function helpText(product, stream = process.stdout) {
+  return `${brandText(product.name, stream)} ${product.version} — ${product.tagline}
 
-Usage: ${product.command} <command> [options]
+Usage: ${brandText(product.command, stream)} <command> [options]
 
 Get started in minutes:
 
@@ -48,7 +49,7 @@ async function main(args) {
   const { values, positionals } = parseArgs({ args, options: OPTIONS, allowPositionals: true });
 
   if (values.version) {
-    console.log(`${product.name} ${product.version}`);
+    console.log(`${brandText(product.name)} ${product.version}`);
     return 0;
   }
   if (values.help) {
@@ -74,7 +75,7 @@ async function main(args) {
       return (await devCommand(product, configPath, values, log)) ? 0 : 1;
     default:
       log.error(
-        `We don't recognize that command: "${command}". Try '${product.command} help' to see what's available.`,
+        `We don't recognize that command: "${command}". Try '${brandText(product.command, process.stderr)} help' to see what's available.`,
       );
       console.log(helpText(product));
       return 1;
