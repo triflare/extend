@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/icon.svg" width="60" alt="The Triflare Extend logo" style="padding-bottom: 20px;"/>
+<img src="assets/icon.svg" width="75" alt="The Triflare Extend logo" style="padding-bottom: 20px;"/>
 
 # Triflare Extend
 
