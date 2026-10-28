@@ -85,6 +85,7 @@ function packTargets(config, settings, root, configPath) {
 
 function collectFiles(root, targets, archivePath) {
   const realRoot = realpathSync(root);
+  const actualArchive = existsSync(archivePath) ? realpathSync(archivePath) : resolve(archivePath);
   const files = new Map();
   const errors = [];
   let visited = new Set();
@@ -92,27 +93,22 @@ function collectFiles(root, targets, archivePath) {
 
   const walk = (path, relPath) => {
     let stats;
+    let actual;
     try {
       stats = lstatSync(path);
+      actual = realpathSync(path);
     } catch (err) {
       errors.push(`We couldn't read ${display(path)}: ${err.message}`);
       return;
     }
 
-    let actual = path;
+    if (!inside(realRoot, actual)) {
+      errors.push(`We can't pack ${display(path)} because it points outside ${display(root)}.`);
+      return;
+    }
+    const destination = relative(realRoot, actual).split(sep);
+    if (destination.some((part) => EXCLUDED_DIRECTORIES.has(part))) return;
     if (stats.isSymbolicLink()) {
-      try {
-        actual = realpathSync(path);
-      } catch (err) {
-        errors.push(`We couldn't read ${display(path)}: ${err.message}`);
-        return;
-      }
-      if (!inside(realRoot, actual)) {
-        errors.push(`We can't pack ${display(path)} because it points outside ${display(root)}.`);
-        return;
-      }
-      const destination = relative(realRoot, actual).split(sep);
-      if (destination.some((part) => EXCLUDED_DIRECTORIES.has(part))) return;
       try {
         stats = statSync(actual);
       } catch (err) {
@@ -140,7 +136,7 @@ function collectFiles(root, targets, archivePath) {
     }
 
     if (!stats.isFile()) return;
-    if (resolve(actual) === resolve(archivePath)) {
+    if (actual === actualArchive) {
       outputCollision = true;
       return;
     }
@@ -212,19 +208,15 @@ export function packCommand(product, configPath, outOverride, overwrite, log) {
     return false;
   }
 
-  if (!overwrite) {
-    if (outputCollision) {
-      log.error(
-        `The output file ${display(output)} is one of the files being packed. Pick a different output path, or run this again with --overwrite to replace it.`,
-      );
-      return false;
-    }
-    if (existsSync(output)) {
-      log.error(
-        `${display(output)} already exists. Run this again with --overwrite to replace it.`,
-      );
-      return false;
-    }
+  if (outputCollision) {
+    log.error(
+      `The output file ${display(output)} is one of the files being packed. Pick a different output path.`,
+    );
+    return false;
+  }
+  if (!overwrite && existsSync(output)) {
+    log.error(`${display(output)} already exists. Run this again with --overwrite to replace it.`);
+    return false;
   }
 
   let entries;

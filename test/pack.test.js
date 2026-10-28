@@ -131,14 +131,14 @@ test("pack skips .git, node_modules, and the archive itself", () => {
     assert.ok(!first.has("node_modules/dep/index.js"));
     assert.ok(!first.has("dist/my-extension.zip"));
 
-    // The second run sees the archive from the first, so it needs --overwrite,
-    // and must still leave the archive itself out.
-    const rerun = runCli(["pack"], dir);
-    assert.equal(rerun.status, 1, rerun.stderr);
-    assert.match(rerun.stderr, /--overwrite/);
-    assert.equal(runCli(["pack", "--overwrite"], dir).status, 0);
-    const second = readZip(output);
-    assert.ok(!second.has("dist/my-extension.zip"));
+    const before = readFileSync(output);
+    for (const flags of [[], ["--overwrite"]]) {
+      const rerun = runCli(["pack", ...flags], dir);
+      assert.equal(rerun.status, 1, rerun.stderr);
+      assert.match(rerun.stderr, /one of the files being packed/);
+      assert.doesNotMatch(rerun.stderr, /again with --overwrite/);
+      assert.deepEqual(readFileSync(output), before);
+    }
   } finally {
     clean(dir);
   }
@@ -282,19 +282,97 @@ test("pack keeps an explicit target a symlink already walked", (t) => {
   }
 });
 
-test("pack refuses to write over a file it is packing", () => {
+for (const excluded of [".git", "node_modules"]) {
+  test(`pack skips includes reached through an alias into ${excluded}`, (t) => {
+    const dir = tmpProject();
+    try {
+      mkdirSync(join(dir, excluded, "nested"), { recursive: true });
+      writeFileSync(join(dir, excluded, "secret.txt"), "secret");
+      writeFileSync(join(dir, excluded, "nested", "secret.txt"), "nested secret");
+      try {
+        symlinkSync(excluded, join(dir, "alias"), "dir");
+      } catch (err) {
+        t.skip(`symlinks are unavailable: ${err.message}`);
+        return;
+      }
+      addPackConfig(dir, "pack:\n  include:\n    - alias/secret.txt\n    - alias/nested");
+      const result = runCli(["pack"], dir);
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(names(readZip(join(dir, "dist", "my-extension.zip"))), [
+        "extend.yml",
+        "src/blocks/hello.js",
+        "src/index.js",
+      ]);
+    } finally {
+      clean(dir);
+    }
+  });
+}
+
+test("pack overwrites an existing archive only when requested", () => {
   const dir = tmpProject();
   try {
-    const source = join(dir, "src", "index.js");
-    const before = readFileSync(source, "utf8");
-    const result = runCli(["pack", "-o", source], dir);
-    assert.equal(result.status, 1, result.stderr);
+    assert.equal(runCli(["pack"], dir).status, 0);
+    const output = join(dir, "dist", "my-extension.zip");
+    const before = readFileSync(output);
+    const result = runCli(["pack"], dir);
+    assert.equal(result.status, 1);
     assert.match(result.stderr, /--overwrite/);
-    assert.equal(readFileSync(source, "utf8"), before);
+    assert.deepEqual(readFileSync(output), before);
+    writeFileSync(join(dir, "src", "index.js"), "export const blocks = {};\n");
+    const overwritten = runCli(["pack", "--overwrite"], dir);
+    assert.equal(overwritten.status, 0, overwritten.stderr);
+    assert.equal(readZip(output).get("src/index.js").toString(), "export const blocks = {};\n");
   } finally {
     clean(dir);
   }
 });
+
+for (const filename of ["src/index.js", "extend.yml"]) {
+  test(`pack refuses to write over ${filename} even with --overwrite`, () => {
+    const dir = tmpProject();
+    try {
+      const source = join(dir, filename);
+      const before = readFileSync(source);
+      for (const flags of [[], ["--overwrite"]]) {
+        const result = runCli(["pack", "-o", source, ...flags], dir);
+        assert.equal(result.status, 1, result.stderr);
+        assert.match(result.stderr, /one of the files being packed/);
+        assert.doesNotMatch(result.stderr, /--overwrite/);
+        assert.deepEqual(readFileSync(source), before);
+      }
+    } finally {
+      clean(dir);
+    }
+  });
+}
+
+for (const type of ["file", "dir"]) {
+  test(`pack rejects an output collision through a ${type} symlink`, (t) => {
+    const dir = tmpProject();
+    try {
+      const source = join(dir, "src", "index.js");
+      const before = readFileSync(source);
+      const alias = join(dir, "alias");
+      try {
+        symlinkSync(type === "file" ? source : join(dir, "src"), alias, type);
+      } catch (err) {
+        t.skip(`symlinks are unavailable: ${err.message}`);
+        return;
+      }
+      const output = type === "file" ? alias : join(alias, "index.js");
+      for (const flags of [[], ["--overwrite"]]) {
+        const result = runCli(["pack", "-o", output, ...flags], dir);
+        assert.equal(result.status, 1, result.stderr);
+        assert.match(result.stderr, /one of the files being packed/);
+        assert.doesNotMatch(result.stderr, /--overwrite/);
+        assert.deepEqual(readFileSync(source), before);
+      }
+    } finally {
+      clean(dir);
+    }
+  });
+}
 
 test("pack reports an invalid include setting", () => {
   const dir = tmpProject();
