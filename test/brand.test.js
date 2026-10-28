@@ -33,5 +33,13 @@ test("brandText paints text with each brand color", () => {
 });
 
 test("brandText stays plain text when the stream can't show color", () => {
-  assert.equal(brandText("Triflare Extend", plainStream()), "Triflare Extend");
+  // node --test sets FORCE_COLOR when its own output is colorized, and
+  // styleText honors it over the stream.
+  const previous = process.env.FORCE_COLOR;
+  delete process.env.FORCE_COLOR;
+  try {
+    assert.equal(brandText("Triflare Extend", plainStream()), "Triflare Extend");
+  } finally {
+    if (previous !== undefined) process.env.FORCE_COLOR = previous;
+  }
 });
