@@ -168,12 +168,12 @@ Imports and module-level bindings in your own files are not in that list, becaus
 For the manifest and entry point below:
 
 ```yaml
-# twext.yml (abridged)
+# extend.yml (abridged)
 extension:
   id: "greeter"
   name: "Greeter"
   className: "GreeterExtension"
-  color1: "#0070F3"
+  color1: "#E8590C"
 
 blocks:
   - opcode: sayHello
@@ -209,7 +209,7 @@ export const blocks = { sayHello };
       return {
         id: "greeter",
         name: "Greeter",
-        color1: "#0070F3",
+        color1: "#E8590C",
         blocks: [
           {
             opcode: "sayHello",

@@ -1,16 +1,27 @@
+# Identity
 name: "Triflare Extend"
 command: "extend"
 version: "0.1.0"
 tagline: "Make your ideas real with powerful extensions."
 author: "Triflare"
 homepage: "https://github.com/triflare/extend"
+
+# Branding
+branding:
+  colors:
+    primary: "#E8590C"
+    secondary: "#BA470A"
+    tertiary: "#8B3507"
+
+# Terminal Glyphs
 symbols:
   success: "✓"
   error: "✗"
   progress: "~"
   bullet: "•"
+
+# Defaults
 defaults:
   configFilename: "extend.yml"
   outputDirectory: "dist"
   devPort: 8000
-  fallbackColor: "#0070F3"

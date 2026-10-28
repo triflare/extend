@@ -11,14 +11,20 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 
 test("loadProduct reads product.yml", () => {
   const product = loadProduct();
-  assert.equal(product.name, "Twext");
+  assert.equal(product.name, "Triflare Extend");
   assert.equal(product.symbols.success, "✓");
-  assert.equal(product.defaults.fallbackColor, "#0070F3");
+  assert.equal(product.symbols.error, "✗");
+  assert.equal(product.symbols.bullet, "•");
+  assert.deepEqual(product.branding.colors, {
+    primary: "#E8590C",
+    secondary: "#BA470A",
+    tertiary: "#8B3507",
+  });
   assert.equal(product.defaults.devPort, 8000);
 });
 
 test("readProjectConfig parses nested mappings and block lists", () => {
-  const config = readProjectConfig(join(root, "test-fixtures", "basic", "twext.yml"));
+  const config = readProjectConfig(join(root, "test-fixtures", "basic", "extend.yml"));
   assert.equal(config.entryPoint, "src/index.js");
   assert.equal(config.extension.className, "SuperUtilitiesExtension");
   assert.equal(config.blocks.length, 4);
@@ -28,13 +34,16 @@ test("readProjectConfig parses nested mappings and block lists", () => {
 });
 
 test("readProjectConfig reports a missing file", () => {
-  assert.throws(() => readProjectConfig(join(root, "does-not-exist.yml")), /Could not read config/);
+  assert.throws(
+    () => readProjectConfig(join(root, "does-not-exist.yml")),
+    /couldn.t find your config file/i,
+  );
 });
 
 test("readProjectConfig treats an empty file as an empty config", () => {
   const dir = mkdtempSync(join(tmpdir(), "twext-config-"));
   try {
-    const file = join(dir, "twext.yml");
+    const file = join(dir, "extend.yml");
     writeFileSync(file, "", "utf8");
     assert.deepEqual(readProjectConfig(file), {});
   } finally {

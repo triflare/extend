@@ -1,7 +1,8 @@
 import { existsSync, lstatSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
+import { brandingColors } from "../brand.js";
 
-function templateYml(fallbackColor) {
+function templateYml(colors) {
   return `name: "my-extension"
 version: "0.1.0"
 description: ""
@@ -15,9 +16,9 @@ extension:
   id: "myextension"
   name: "My Extension"
   className: "MyExtension"
-  color1: "${fallbackColor}"
-  color2: "${fallbackColor}"
-  color3: "${fallbackColor}"
+  color1: "${colors.primary}"
+  color2: "${colors.secondary}"
+  color3: "${colors.tertiary}"
 
 blocks:
   - opcode: hello
@@ -48,8 +49,7 @@ function templateHello() {
 
 function files(product) {
   return {
-    [product.defaults.configFilename]: () =>
-      templateYml(product.defaults.fallbackColor ?? "#0070F3"),
+    [product.defaults.configFilename]: () => templateYml(brandingColors()),
     "src/index.js": () => templateIndex(),
     "src/blocks/hello.js": () => templateHello(),
   };

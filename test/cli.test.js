@@ -23,13 +23,18 @@ test("init scaffolds a project that builds", () => {
   try {
     const init = runCli(["init"], dir);
     assert.equal(init.status, 0);
-    for (const file of ["twext.yml", "src/index.js", "src/blocks/hello.js"]) {
+    for (const file of ["extend.yml", "src/index.js", "src/blocks/hello.js"]) {
       assert.ok(existsSync(join(dir, file)), `${file} should exist`);
     }
 
+    const scaffold = readFileSync(join(dir, "extend.yml"), "utf8");
+    assert.match(scaffold, /color1: "#E8590C"/);
+    assert.match(scaffold, /color2: "#BA470A"/);
+    assert.match(scaffold, /color3: "#8B3507"/);
+
     const validate = runCli(["validate"], dir);
     assert.equal(validate.status, 0, validate.stderr);
-    assert.match(validate.stdout, /1 block validated/);
+    assert.match(validate.stdout, /✓ 1 block validated/);
 
     const build = runCli(["build"], dir);
     assert.equal(build.status, 0, build.stderr);
@@ -53,7 +58,7 @@ test("init refuses to run when a template parent path is a file", () => {
     const result = runCli(["init", "-f"], dir);
     assert.equal(result.status, 1, result.stderr);
     assert.match(result.stderr, /not a directory/);
-    assert.ok(!existsSync(join(dir, "twext.yml")), "no files should be written");
+    assert.ok(!existsSync(join(dir, "extend.yml")), "no files should be written");
   } finally {
     cleanup();
   }
@@ -66,7 +71,7 @@ test("init refuses a target under an existing-file ancestor", () => {
     const result = runCli(["init", "sub/proj"], dir);
     assert.equal(result.status, 1, result.stderr);
     assert.match(result.stderr, /not a directory/);
-    assert.ok(!existsSync(join(dir, "sub", "proj", "twext.yml")), "no files should be written");
+    assert.ok(!existsSync(join(dir, "sub", "proj", "extend.yml")), "no files should be written");
   } finally {
     cleanup();
   }
@@ -83,7 +88,7 @@ test("build without a config exits nonzero with a helpful error", () => {
   try {
     const result = runCli(["build"], dir);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /Could not read config/);
+    assert.match(result.stderr, /couldn.t find your config file/i);
   } finally {
     cleanup();
   }

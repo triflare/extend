@@ -45,7 +45,7 @@ For the sake of this tutorial, we won't be using `twext init`. But, the init scr
         id: "myextension" # Only numbers and letters, nothing else
         name: "My Extension"
         className: "MyExtension" # Pascal case is recommended
-        color1: "#0070F3"
+        color1: "#E8590C"
 
       blocks:
         - opcode: hello

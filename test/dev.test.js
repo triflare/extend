@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const cli = fileURLToPath(new URL("../src/cli.js", import.meta.url));
 
 function initProject() {
-  const dir = mkdtempSync(join(tmpdir(), "twext-dev-"));
+  const dir = mkdtempSync(join(tmpdir(), "extend-dev-"));
   const init = spawnSync(process.execPath, [cli, "init"], { cwd: dir, encoding: "utf8" });
   assert.equal(init.status, 0, init.stderr);
   return dir;
@@ -30,7 +30,7 @@ function startDev(dir, port = "0") {
       20000,
     );
     const look = () => {
-      const match = state.stdout.match(/Serving (http:\/\/\S+?)\/extension\.js/);
+      const match = state.stdout.match(/Preview ready at (http:\/\/\S+?)\/extension\.js/);
       if (match) {
         clearTimeout(timer);
         resolve(match[1]);
@@ -127,7 +127,7 @@ test("dev keeps the last good build through a failure and picks up the fix", asy
 
     writeFileSync(join(dir, "src/blocks/hello.js"), "export function hello( {\n");
     await waitFor(
-      async () => dev.state.stderr.includes("Build failed"),
+      async () => dev.state.stderr.includes("hit a problem while building"),
       `the failure was never reported\n${dev.state.stdout}${dev.state.stderr}`,
     );
     assert.match(

@@ -51,7 +51,7 @@ function executeExtension(code, { unsandboxed } = {}) {
 
 test("compiles the basic fixture into the expected IIFE shape", async () => {
   const product = loadProduct();
-  const configPath = join(fixture("basic"), "twext.yml");
+  const configPath = join(fixture("basic"), "extend.yml");
   const project = await loadProject(configPath);
   const code = compileExtension(project, product);
 
@@ -81,7 +81,7 @@ test("compiles the basic fixture into the expected IIFE shape", async () => {
 
 test("compiled extension runs and behaves like a real extension", async () => {
   const product = loadProduct();
-  const project = await loadProject(join(fixture("basic"), "twext.yml"));
+  const project = await loadProject(join(fixture("basic"), "extend.yml"));
   const code = compileExtension(project, product);
 
   const extension = executeExtension(code);
@@ -106,9 +106,42 @@ test("compiled extension runs and behaves like a real extension", async () => {
 
 test("getInfo injects null; omitted topics", async () => {
   const product = loadProduct();
-  const project = await loadProject(join(fixture("basic"), "twext.yml"));
+  const project = await loadProject(join(fixture("basic"), "extend.yml"));
   const code = compileExtension(project, product);
   assert.doesNotMatch(code, /undefined/);
+});
+
+test("uses the primary brand color when color1 is missing", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "twext-color-"));
+  try {
+    mkdirSync(join(dir, "src"));
+    writeFileSync(
+      join(dir, "extend.yml"),
+      `entryPoint: "src/index.js"
+outputPath: "dist/extension.js"
+extension:
+  id: colorDemo
+  name: "Color Demo"
+blocks:
+  - opcode: ping
+    blockType: reporter
+    text: "ping"
+`,
+      "utf8",
+    );
+    writeFileSync(
+      join(dir, "src", "index.js"),
+      'export const blocks = { ping() { return "pong"; } };\n',
+      "utf8",
+    );
+
+    const product = loadProduct();
+    const project = await loadProject(join(dir, "extend.yml"));
+    const info = executeExtension(compileExtension(project, product)).getInfo();
+    assert.equal(info.color1, product.branding.colors.primary);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("omits color2 and color3 when only color1 is set", async () => {
@@ -116,7 +149,7 @@ test("omits color2 and color3 when only color1 is set", async () => {
   try {
     mkdirSync(join(dir, "src"));
     writeFileSync(
-      join(dir, "twext.yml"),
+      join(dir, "extend.yml"),
       `entryPoint: "src/index.js"
 outputPath: "dist/extension.js"
 extension:
@@ -136,7 +169,7 @@ blocks:
       "utf8",
     );
 
-    const project = await loadProject(join(dir, "twext.yml"));
+    const project = await loadProject(join(dir, "extend.yml"));
     const code = compileExtension(project, loadProduct());
     assert.doesNotMatch(code, /color2|color3/);
     const info = executeExtension(code).getInfo();
@@ -153,7 +186,7 @@ test("expression-bodied setup arrows do not early-return from the IIFE", async (
   try {
     mkdirSync(join(dir, "src"));
     writeFileSync(
-      join(dir, "twext.yml"),
+      join(dir, "extend.yml"),
       `entryPoint: "src/index.js"
 outputPath: "dist/extension.js"
 extension:
@@ -172,7 +205,7 @@ blocks:
       "utf8",
     );
 
-    const project = await loadProject(join(dir, "twext.yml"));
+    const project = await loadProject(join(dir, "extend.yml"));
     const code = compileExtension(project, loadProduct());
     assert.doesNotMatch(code, /\n {2}return console\.log/);
     const info = executeExtension(code).getInfo();
@@ -187,7 +220,7 @@ test("dedent leaves whitespace inside template literals intact", async () => {
   try {
     mkdirSync(join(dir, "src"));
     writeFileSync(
-      join(dir, "twext.yml"),
+      join(dir, "extend.yml"),
       `entryPoint: "src/index.js"
 outputPath: "dist/extension.js"
 extension:
@@ -206,7 +239,7 @@ blocks:
       "utf8",
     );
 
-    const project = await loadProject(join(dir, "twext.yml"));
+    const project = await loadProject(join(dir, "extend.yml"));
     const code = compileExtension(project, loadProduct());
     const extension = executeExtension(code);
     assert.equal(extension.block({}), "a\n    b\n  c");
@@ -242,7 +275,7 @@ test("backslash-continued strings keep their whitespace through indentCode", asy
   try {
     mkdirSync(join(dir, "src"));
     writeFileSync(
-      join(dir, "twext.yml"),
+      join(dir, "extend.yml"),
       `entryPoint: "src/index.js"
 outputPath: "dist/extension.js"
 extension:
@@ -261,7 +294,7 @@ blocks:
       "utf8",
     );
 
-    const project = await loadProject(join(dir, "twext.yml"));
+    const project = await loadProject(join(dir, "extend.yml"));
     const code = compileExtension(project, loadProduct());
     assert.equal(executeExtension(code).block({}), "a    b");
   } finally {
@@ -280,7 +313,7 @@ test("compile sanitizes class names derived from numeric-like ids", async () => 
   try {
     mkdirSync(join(dir, "src"));
     writeFileSync(
-      join(dir, "twext.yml"),
+      join(dir, "extend.yml"),
       `entryPoint: "src/index.js"
 outputPath: "dist/extension.js"
 extension:
@@ -298,7 +331,7 @@ blocks:
       "utf8",
     );
 
-    const project = await loadProject(join(dir, "twext.yml"));
+    const project = await loadProject(join(dir, "extend.yml"));
     const code = compileExtension(project, loadProduct());
     assert.match(code, /class _123ToolsExtension \{/);
     assert.doesNotThrow(() => executeExtension(code));
@@ -327,22 +360,22 @@ async function validateTempProject(yml, index) {
   const dir = mkdtempSync(join(tmpdir(), "twext-validate-"));
   try {
     mkdirSync(join(dir, "src"));
-    writeFileSync(join(dir, "twext.yml"), yml, "utf8");
+    writeFileSync(join(dir, "extend.yml"), yml, "utf8");
     writeFileSync(join(dir, "src", "index.js"), index, "utf8");
-    return await validateProject(join(dir, "twext.yml"));
+    return await validateProject(join(dir, "extend.yml"));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 }
 
 test("validate accepts the basic fixture", async () => {
-  const result = await validateProject(join(fixture("basic"), "twext.yml"));
+  const result = await validateProject(join(fixture("basic"), "extend.yml"));
   assert.equal(result.ok, true);
   assert.equal(result.errors.length, 0);
 });
 
 test("validate rejects missing handlers and unknown types", async () => {
-  const result = await validateProject(join(fixture("broken"), "twext.yml"));
+  const result = await validateProject(join(fixture("broken"), "extend.yml"));
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((e) => e.includes('Block "nope"')));
   assert.ok(result.errors.some((e) => e.includes('unknown blockType "imagetype"')));
@@ -421,7 +454,7 @@ blocks:
 
 test("compile throws on an unknown blockType", async () => {
   const product = loadProduct();
-  const project = await loadProject(join(fixture("broken"), "twext.yml"));
+  const project = await loadProject(join(fixture("broken"), "extend.yml"));
   assert.throws(() => compileExtension(project, product), /Unknown blockType "imagetype"/);
 });
 
@@ -430,7 +463,7 @@ test("compiles menus, separators, and labels into getInfo", async () => {
   try {
     mkdirSync(join(dir, "src"));
     writeFileSync(
-      join(dir, "twext.yml"),
+      join(dir, "extend.yml"),
       `entryPoint: "src/index.js"
 outputPath: "dist/extension.js"
 extension:
@@ -477,8 +510,8 @@ blocks:
       "utf8",
     );
 
-    const project = await loadProject(join(dir, "twext.yml"));
-    const result = await validateProject(join(dir, "twext.yml"));
+    const project = await loadProject(join(dir, "extend.yml"));
+    const result = await validateProject(join(dir, "extend.yml"));
     assert.equal(result.ok, true, result.errors.join("; "));
     const code = compileExtension(project, loadProduct());
     assert.match(code, /"---",/);
@@ -646,9 +679,9 @@ async function compileTempProject(yml, index, scratch) {
   const dir = mkdtempSync(join(tmpdir(), "twext-compile-"));
   try {
     mkdirSync(join(dir, "src"));
-    writeFileSync(join(dir, "twext.yml"), yml, "utf8");
+    writeFileSync(join(dir, "extend.yml"), yml, "utf8");
     writeFileSync(join(dir, "src", "index.js"), index, "utf8");
-    const project = await loadProject(join(dir, "twext.yml"));
+    const project = await loadProject(join(dir, "extend.yml"));
     const code = compileExtension(project, loadProduct());
     return { code, extension: executeExtension(code, scratch) };
   } finally {

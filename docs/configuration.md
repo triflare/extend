@@ -121,7 +121,7 @@ Every key under `extension`, a block, an argument, and a menu has to be one Twex
 - `id`: Stable ID TurboWarp uses to identify the extension. Required, 1 to 64 lower-case letters and digits (`a-z`, `0-9`) — the same rule TwextHub enforces. It can't be changed without breaking existing projects.
 - `name`: Name shown in the block palette. Falls back to the project `name`, then to the `id`.
 - `className`: Name of the generated extension class. Must be a valid JavaScript identifier and not a reserved word. When it's missing, Twext appends `Extension` to the PascalCase `id` and prefixes `_` if the resulting name starts with a digit.
-- `color1`: Primary block color, as `#rrggbb`. Defaults to `#0070F3`.
+- `color1`: Primary block color, as `#rrggbb`. Defaults to `#E8590C`.
 - `color2`: Secondary block color. Left out of the output when it isn't set.
 - `color3`: Tertiary block color. Left out of the output when it isn't set.
 - `docsURI`: Link to your documentation. TurboWarp shows it as a **Documentation** entry at the bottom of the extension's menu.
