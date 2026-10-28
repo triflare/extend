@@ -47,34 +47,32 @@ npm test
 Run the CLI straight out of the repository while you work on it:
 
 ```bash
-node src/cli.js validate -c path/to/project/twext.yml
+node src/cli.js validate -c path/to/project/extend.yml
 ```
 
 ## 🗂️ Project Layout
 
-| Path                                           | What it does                                                                                                       |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `src/cli.js`                                   | Argument parsing, the command table, and the help text.                                                            |
-| `src/commands/`                                | One file per command. Each exports a function that returns whether it succeeded.                                   |
-| `src/compile.js`                               | Turns a validated project into the extension file. Block type tables, the emitted `getInfo()`, and the class body. |
-| `src/validate.js`                              | The checks behind `twext validate`, and the shared `extension.id` reader the registry commands use.                |
-| `src/free-vars.js`                             | The `espree` and `eslint-scope` analysis that finds names a handler reads but won't have.                          |
-| `src/function-source.js`                       | Re-prints a handler from `Function.prototype.toString()`. Adding a function shape starts here.                     |
-| `src/hub.js`                                   | The TwextHub HTTP client, plus reading and writing `~/.twext/config.json`.                                         |
-| `src/spec.js`                                  | Parses `id@version` specs and decides whether a version is a range.                                                |
-| `src/project.js`                               | Reads `twext.yml` and imports the entry point.                                                                     |
-| `src/dev-server.js`                            | The HTTP server behind `twext dev`: routes the extension and the index page, and sends the no-cache headers.       |
-| `src/dev-build.js`                             | The worker `twext dev` spawns for each rebuild, loading only the compiler instead of the whole CLI.                |
-| `src/tarball.js`                               | Packs a project for `twext publish`.                                                                               |
-| `src/prompt.js`, `src/log.js`, `src/format.js` | Terminal prompts, the colored output, and the day a hub timestamp is printed as.                                   |
-| `src/config.js`                                | Loads `product.yml`.                                                                                               |
-| `schema/twext.json`                            | The JSON Schema editors point at for `twext.yml`.                                                                  |
-| `types/extension.d.ts`                         | The types editors import for the entry point module.                                                               |
-| `product.yml`                                  | The name, command, version, tagline, output symbols, and defaults. Everything user-visible that isn't in the code. |
-| `test/`, `test-fixtures/`                      | The test suite and the projects it runs against.                                                                   |
-| `docs/`                                        | The documentation in this directory.                                                                               |
+| Path                      | What it does                                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `src/cli.js`              | Argument parsing, the command table, and the help text.                                                            |
+| `src/commands/`           | One file per command. Each exports a function that returns whether it succeeded.                                   |
+| `src/compile.js`          | Turns a validated project into the extension file. Block type tables, the emitted `getInfo()`, and the class body. |
+| `src/validate.js`         | The checks behind `extend validate`.                                                                               |
+| `src/free-vars.js`        | The `espree` and `eslint-scope` analysis that finds names a handler reads but won't have.                          |
+| `src/function-source.js`  | Re-prints a handler from `Function.prototype.toString()`. Adding a function shape starts here.                     |
+| `src/project.js`          | Reads the config file and imports the entry point.                                                                 |
+| `src/dev-server.js`       | The HTTP server behind `extend dev`: routes the extension and the index page, and sends the no-cache headers.      |
+| `src/dev-build.js`        | The worker `extend dev` spawns for each rebuild, loading only the compiler instead of the whole CLI.               |
+| `src/log.js`              | The Consola-backed logger every command writes through.                                                            |
+| `src/brand.js`            | Reads product names, the command, and the config filename from `product.yml`.                                      |
+| `src/config.js`           | Loads `product.yml`.                                                                                               |
+| `schema/extend.json`      | The JSON Schema editors point at for `extend.yml`.                                                                 |
+| `types/extension.d.ts`    | The types editors import for the entry point module.                                                               |
+| `product.yml`             | The name, command, version, tagline, symbols, and defaults. Everything user-visible that isn't in the code.        |
+| `test/`, `test-fixtures/` | The test suite and the projects it runs against.                                                                   |
+| `docs/`                   | The documentation in this directory.                                                                               |
 
-`product.yml` deserves a note: `twext --version` prints its `version`, the help text prints its `name` and `tagline`, the log symbols and colors come from it, and `defaults` supplies the config filename, the output directory, the dev server port, and the fallback block color. A change to a default there changes Twext's behavior, so it needs a test.
+`product.yml` deserves a note: `extend --version` prints its `version`, the help text prints its `name` and `tagline`, `defaults` supplies the config filename, the output directory, and the dev server port. The Unicode log glyphs come from `symbols`. A change to a default there changes Extend's behavior, so it needs a test.
 
 ## 🧪 Tests
 

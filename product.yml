@@ -1,16 +1,16 @@
-name: "Twext"
-command: "twext"
-version: "2.2.0"
-tagline: "Build custom TurboWarp extensions with JavaScript modules (ESM)."
-author: "Twext Team"
-homepage: "https://github.com/twext/twext"
+name: "Triflare Extend"
+command: "extend"
+version: "0.1.0"
+tagline: "Make your ideas real with powerful extensions."
+author: "Triflare"
+homepage: "https://github.com/triflare/extend"
 symbols:
   success: "✓"
   error: "✗"
   progress: "~"
   bullet: "•"
 defaults:
-  configFilename: "twext.yml"
+  configFilename: "extend.yml"
   outputDirectory: "dist"
   devPort: 8000
   fallbackColor: "#0070F3"

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse } from "yaml";
 
@@ -8,7 +8,9 @@ export function readProjectConfig(configPath) {
   try {
     text = readFileSync(configPath, "utf8");
   } catch (err) {
-    throw new Error(`Could not read config "${configPath}": ${err.message}`, { cause: err });
+    throw new Error(`We couldn't find your config file "${configPath}": ${err.message}`, {
+      cause: err,
+    });
   }
   return parse(text) ?? {};
 }
@@ -26,13 +28,13 @@ export async function loadProject(configPath) {
   const config = readProjectConfig(configPath);
   const root = dirname(resolve(configPath));
   if (typeof config.entryPoint !== "string" || !config.entryPoint) {
-    throw new Error('twext.yml must define an "entryPoint" path');
+    throw new Error(`${basename(configPath)} must define an "entryPoint" path`);
   }
   let mod;
   try {
     mod = await import(pathToFileURL(resolve(root, config.entryPoint)).href);
   } catch (err) {
-    throw new Error(`Could not load entryPoint "${config.entryPoint}": ${err.message}`, {
+    throw new Error(`We couldn't load your entry point "${config.entryPoint}": ${err.message}`, {
       cause: err,
     });
   }

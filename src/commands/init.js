@@ -46,11 +46,14 @@ function templateHello() {
 `;
 }
 
-const FILES = {
-  "twext.yml": (product) => templateYml(product.defaults.fallbackColor ?? "#0070F3"),
-  "src/index.js": () => templateIndex(),
-  "src/blocks/hello.js": () => templateHello(),
-};
+function files(product) {
+  return {
+    [product.defaults.configFilename]: () =>
+      templateYml(product.defaults.fallbackColor ?? "#0070F3"),
+    "src/index.js": () => templateIndex(),
+    "src/blocks/hello.js": () => templateHello(),
+  };
+}
 
 function parentDirs(dir, rel) {
   const out = [];
@@ -72,6 +75,7 @@ function isSymlink(p) {
 
 export function initCommand(product, target, force, log) {
   const dir = resolve(target ?? ".");
+  const templates = files(product);
   let existing = dir;
   while (!existsSync(existing)) {
     const parent = dirname(existing);
@@ -83,11 +87,11 @@ export function initCommand(product, target, force, log) {
     return false;
   }
   const conflicts = [];
-  for (const rel of Object.keys(FILES)) {
+  for (const rel of Object.keys(templates)) {
     if (existsSync(join(dir, rel)) && !force) conflicts.push(rel);
   }
   const blockedParents = new Set();
-  for (const rel of Object.keys(FILES)) {
+  for (const rel of Object.keys(templates)) {
     for (const parent of parentDirs(dir, rel)) {
       if (existsSync(parent) && !statSync(parent).isDirectory()) blockedParents.add(parent);
     }
@@ -105,7 +109,7 @@ export function initCommand(product, target, force, log) {
     log.error(`${relative(process.cwd(), root)} is a symbolic link and was rejected`);
     return false;
   }
-  for (const rel of Object.keys(FILES)) {
+  for (const rel of Object.keys(templates)) {
     const output = resolve(root, rel);
     const relToRoot = relative(root, output);
     if (relToRoot !== "" && (relToRoot === ".." || relToRoot.startsWith(`..${sep}`))) {
@@ -125,7 +129,7 @@ export function initCommand(product, target, force, log) {
     }
   }
   mkdirSync(dir, { recursive: true });
-  for (const [rel, render] of Object.entries(FILES)) {
+  for (const [rel, render] of Object.entries(templates)) {
     const output = resolve(root, rel);
     mkdirSync(dirname(output), { recursive: true });
     writeFileSync(output, render(product), "utf8");

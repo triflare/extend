@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/twext/twext/blob/main/schema/twext.json",
-  "title": "Twext",
-  "description": "Manifest for a Twext extension project (twext.yml).",
+  "$id": "https://github.com/triflare/extend/blob/main/schema/extend.json",
+  "title": "Triflare Extend",
+  "description": "Manifest for a Triflare Extend project (extend.yml).",
   "type": "object",
   "additionalProperties": true,
   "required": ["entryPoint", "extension", "blocks"],
@@ -33,7 +33,7 @@
     },
     "outputPath": {
       "type": "string",
-      "description": "Where twext build writes the compiled extension. Defaults to dist/extension.js."
+      "description": "Where extend build writes the compiled extension. Defaults to dist/extension.js."
     },
     "extension": {
       "$ref": "#/definitions/extension"

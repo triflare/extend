@@ -1,4 +1,4 @@
-/** Argument values passed to a block handler, keyed by the argument names declared in twext.yml. */
+/** Argument values passed to a block handler, keyed by the argument names declared in extend.yml. */
 export type HandlerArgs = Record<string, unknown>;
 
 /** The `util` object passed to every block handler. See the TurboWarp docs for its full API. */
@@ -19,7 +19,7 @@ export type Method = (this: unknown, ...args: any[]) => unknown;
 /** A map of method name -> function. Your entryPoint exports this as `methods`. */
 export type Methods = Record<string, Method>;
 
-/** The shape twext expects an entryPoint module to have. */
+/** The shape extend expects an entryPoint module to have. */
 export interface Extension {
   blocks: Blocks;
   setup?: Setup;

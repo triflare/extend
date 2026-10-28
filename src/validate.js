@@ -11,6 +11,7 @@ import {
   resolveSetup,
   pascalCase,
 } from "./compile.js";
+import { configFilename } from "./brand.js";
 import { loadProject } from "./project.js";
 import {
   RUNTIME_GLOBALS,
@@ -79,7 +80,7 @@ const RESERVED_OPCODES = new Set(["constructor", "getInfo"]);
 const DATA_URI_ARGUMENT_TYPES = new Set(["image", "costume", "sound"]);
 
 // Every manifest shape is strict. A key the compiler would not copy is reported
-// here instead of vanishing quietly between twext.yml and getInfo().
+// here instead of vanishing quietly between the config file and getInfo().
 function editDistance(a, b) {
   let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
   for (let i = 1; i <= a.length; i++) {
@@ -154,7 +155,7 @@ export async function validateProject(configPath) {
   validateMethods(errors, mod);
 
   if (!config.extension || typeof config.extension !== "object") {
-    errors.push('twext.yml must define an "extension" section');
+    errors.push(`${configFilename()} must define an "extension" section`);
   } else {
     const ext = config.extension;
     rejectUnknownKeys(errors, ext, EXTENSION_KEYS, "extension");
@@ -196,7 +197,7 @@ export async function validateProject(configPath) {
   }
 
   if (!Array.isArray(config.blocks) || config.blocks.length === 0) {
-    errors.push('twext.yml must define at least one entry in "blocks"');
+    errors.push(`${configFilename()} must define at least one entry in "blocks"`);
   } else {
     const declared = new Set();
     const published = new Set();
@@ -364,7 +365,7 @@ export async function validateProject(configPath) {
     }
     for (const [opcode, handler] of Object.entries(mod.blocks)) {
       if (typeof handler === "function" && !declared.has(opcode)) {
-        warnings.push(`Handler "${opcode}" is exported but not declared in twext.yml`);
+        warnings.push(`Handler "${opcode}" is exported but not declared in ${configFilename()}`);
       }
     }
     validateReferences(errors, project);
