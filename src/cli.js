@@ -16,6 +16,7 @@ const OPTIONS = {
   config: { type: "string", short: "c" },
   out: { type: "string", short: "o" },
   force: { type: "boolean", short: "f" },
+  overwrite: { type: "boolean" },
   port: { type: "string", short: "p" },
 };
 
@@ -39,6 +40,7 @@ Options:
   -o, --out <file>         Save to a specific location (build, dev, pack)
   -p, --port <number>      Choose a port for preview (default: ${product.defaults.devPort})
   -f, --force              Overwrite existing files (init only)
+  --overwrite              Replace an existing archive (pack)
   -h, --help               Show this help
   -v, --version            See your version
 
@@ -76,7 +78,15 @@ async function main(args) {
     case "dev":
       return (await devCommand(product, configPath, values, log)) ? 0 : 1;
     case "pack":
-      return packCommand(product, configPath, values.out ? resolve(values.out) : null, log) ? 0 : 1;
+      return packCommand(
+        product,
+        configPath,
+        values.out ? resolve(values.out) : null,
+        values.overwrite,
+        log,
+      )
+        ? 0
+        : 1;
     default:
       log.error(
         `We don't recognize that command: "${command}". Try '${brandText(product.command, process.stderr)} help' to see what's available.`,

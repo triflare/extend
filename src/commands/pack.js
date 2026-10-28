@@ -73,14 +73,7 @@ function packTargets(config, settings, root, configPath) {
   }
 
   if (typeof config.entryPoint === "string" && config.entryPoint) {
-    const entryPoint = resolve(root, config.entryPoint);
-    targets.push({ path: entryPoint, required: true });
-    // An entry point can live outside src/. Its neighboring modules are part
-    // of the source too, unless that directory is the project root.
-    const sourceDirectory = dirname(entryPoint);
-    if (sourceDirectory !== resolve(root)) {
-      targets.push({ path: sourceDirectory, required: false });
-    }
+    targets.push({ path: resolve(root, config.entryPoint), required: true });
   }
 
   for (const include of settings.include) {
@@ -93,8 +86,9 @@ function packTargets(config, settings, root, configPath) {
 function collectFiles(root, targets, archivePath) {
   const realRoot = realpathSync(root);
   const files = new Map();
-  const visited = new Set();
   const errors = [];
+  let visited = new Set();
+  let outputCollision = false;
 
   const walk = (path, relPath) => {
     let stats;
@@ -117,6 +111,8 @@ function collectFiles(root, targets, archivePath) {
         errors.push(`We can't pack ${display(path)} because it points outside ${display(root)}.`);
         return;
       }
+      const destination = relative(realRoot, actual).split(sep);
+      if (destination.some((part) => EXCLUDED_DIRECTORIES.has(part))) return;
       try {
         stats = statSync(actual);
       } catch (err) {
@@ -144,7 +140,10 @@ function collectFiles(root, targets, archivePath) {
     }
 
     if (!stats.isFile()) return;
-    if (resolve(actual) === resolve(archivePath)) return;
+    if (resolve(actual) === resolve(archivePath)) {
+      outputCollision = true;
+      return;
+    }
     const name = relPath.split(sep).join("/");
     if (!files.has(name)) files.set(name, { path: actual, mtime: stats.mtime });
   };
@@ -176,13 +175,16 @@ function collectFiles(root, targets, archivePath) {
       );
       continue;
     }
+    // Each target gets a fresh set so a directory an earlier symlink already
+    // walked doesn't suppress a later target's own archive paths.
+    visited = new Set();
     walk(target.path, relative(root, target.path).split(sep).join("/"));
   }
 
-  return { files, errors };
+  return { files, errors, outputCollision };
 }
 
-export function packCommand(product, configPath, outOverride, log) {
+export function packCommand(product, configPath, outOverride, overwrite, log) {
   const root = dirname(resolve(configPath));
   let config;
   let settings;
@@ -204,10 +206,25 @@ export function packCommand(product, configPath, outOverride, log) {
   const targets = packTargets(config, settings, root, configPath);
 
   log.progress(`Packing ${config.extension?.name ?? config.name ?? "your project"}...`);
-  const { files, errors } = collectFiles(root, targets, output);
+  const { files, errors, outputCollision } = collectFiles(root, targets, output);
   if (errors.length > 0) {
     log.error(["We couldn't pack your project. Here's what we noticed:", ...errors].join("\n"));
     return false;
+  }
+
+  if (!overwrite) {
+    if (outputCollision) {
+      log.error(
+        `The output file ${display(output)} is one of the files being packed. Pick a different output path, or run this again with --overwrite to replace it.`,
+      );
+      return false;
+    }
+    if (existsSync(output)) {
+      log.error(
+        `${display(output)} already exists. Run this again with --overwrite to replace it.`,
+      );
+      return false;
+    }
   }
 
   let entries;

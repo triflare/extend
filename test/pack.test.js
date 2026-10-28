@@ -131,8 +131,12 @@ test("pack skips .git, node_modules, and the archive itself", () => {
     assert.ok(!first.has("node_modules/dep/index.js"));
     assert.ok(!first.has("dist/my-extension.zip"));
 
-    // The second run sees the archive from the first and must still leave it out.
-    assert.equal(runCli(["pack"], dir).status, 0);
+    // The second run sees the archive from the first, so it needs --overwrite,
+    // and must still leave the archive itself out.
+    const rerun = runCli(["pack"], dir);
+    assert.equal(rerun.status, 1, rerun.stderr);
+    assert.match(rerun.stderr, /--overwrite/);
+    assert.equal(runCli(["pack", "--overwrite"], dir).status, 0);
     const second = readZip(output);
     assert.ok(!second.has("dist/my-extension.zip"));
   } finally {
@@ -213,7 +217,8 @@ test("pack follows --config and includes an entry point outside src", () => {
     const result = runCli(["pack", "-c", "custom.yml"], dir);
     assert.equal(result.status, 0, result.stderr);
     const output = join(dir, "dist", "outside-entry.zip");
-    assert.deepEqual(names(readZip(output)), ["custom.yml", "lib/helper.js", "lib/index.js"]);
+    // Only the entry point itself comes along; lib/helper.js needs pack.include.
+    assert.deepEqual(names(readZip(output)), ["custom.yml", "lib/index.js"]);
   } finally {
     clean(dir);
   }
@@ -229,6 +234,63 @@ test("pack does not execute the entry point", () => {
     const result = runCli(["pack"], dir);
     assert.equal(result.status, 0, result.stderr);
     assert.ok(!existsSync(join(dir, "ran.txt")));
+  } finally {
+    clean(dir);
+  }
+});
+
+test("pack skips a symlink that resolves into an excluded directory", (t) => {
+  const dir = tmpProject();
+  try {
+    mkdirSync(join(dir, "node_modules", "dep"), { recursive: true });
+    writeFileSync(join(dir, "node_modules", "dep", "index.js"), "module.exports = 1;");
+    try {
+      symlinkSync(join("..", "node_modules"), join(dir, "src", "deps"), "dir");
+    } catch (err) {
+      t.skip(`symlinks are unavailable: ${err.message}`);
+      return;
+    }
+    const result = runCli(["pack"], dir);
+    assert.equal(result.status, 0, result.stderr);
+    const entries = names(readZip(join(dir, "dist", "my-extension.zip")));
+    assert.ok(entries.includes("src/index.js"));
+    assert.ok(!entries.some((name) => name.startsWith("src/deps/")));
+  } finally {
+    clean(dir);
+  }
+});
+
+test("pack keeps an explicit target a symlink already walked", (t) => {
+  const dir = tmpProject();
+  try {
+    mkdirSync(join(dir, "shared"));
+    writeFileSync(join(dir, "shared", "helper.js"), "export const helper = 1;");
+    try {
+      symlinkSync(join("shared"), join(dir, "alias"), "dir");
+    } catch (err) {
+      t.skip(`symlinks are unavailable: ${err.message}`);
+      return;
+    }
+    addPackConfig(dir, "pack:\n  include:\n    - alias\n    - shared");
+    const result = runCli(["pack"], dir);
+    assert.equal(result.status, 0, result.stderr);
+    const entries = readZip(join(dir, "dist", "my-extension.zip"));
+    assert.ok(entries.has("alias/helper.js"));
+    assert.ok(entries.has("shared/helper.js"));
+  } finally {
+    clean(dir);
+  }
+});
+
+test("pack refuses to write over a file it is packing", () => {
+  const dir = tmpProject();
+  try {
+    const source = join(dir, "src", "index.js");
+    const before = readFileSync(source, "utf8");
+    const result = runCli(["pack", "-o", source], dir);
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /--overwrite/);
+    assert.equal(readFileSync(source, "utf8"), before);
   } finally {
     clean(dir);
   }
