@@ -22,20 +22,24 @@ function helpText(product) {
 
 Usage: ${product.command} <command> [options]
 
+Get started in minutes:
+
 Commands:
-  build         Validate and compile the extension (default)
-  dev           Rebuild on change and serve the extension at http://localhost:${product.defaults.devPort}
-  validate      Check blocks against the entryPoint handlers
-  init          Scaffold a new project in a directory
+  init          Create a new extension project to build on
+  build         Get your extension ready to use (default)
+  dev           Preview your extension as you make changes
+  validate      Check your extension for quick fixes
   help          Show this help
 
 Options:
-  -c, --config <file>      Path to ${product.defaults.configFilename} (default: ${product.defaults.configFilename})
-  -o, --out <file>         Override the output path (build, dev)
-  -p, --port <number>      Port for the dev server (default: ${product.defaults.devPort})
+  -c, --config <file>      Path to your config file (default: ${product.defaults.configFilename})
+  -o, --out <file>         Save to a specific location (build, dev)
+  -p, --port <number>      Choose a port for preview (default: ${product.defaults.devPort})
   -f, --force              Overwrite existing files (init only)
   -h, --help               Show this help
-  -v, --version            Print the version`;
+  -v, --version            See your version
+
+Need help? We're here to make building easier.`;
 }
 
 async function main(args) {
@@ -69,7 +73,9 @@ async function main(args) {
     case "dev":
       return (await devCommand(product, configPath, values, log)) ? 0 : 1;
     default:
-      log.error(`Unknown command "${command}"`);
+      log.error(
+        `We don't recognize that command: "${command}". Try '${product.command} help' to see what's available.`,
+      );
       console.log(helpText(product));
       return 1;
   }
@@ -81,6 +87,6 @@ main(process.argv.slice(2))
   })
   .catch((err) => {
     const log = createLogger(loadProduct());
-    log.error(err.message ?? String(err));
+    log.error(`We ran into a problem: ${err.message ?? String(err)}`);
     process.exitCode = 1;
   });

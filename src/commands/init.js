@@ -83,7 +83,9 @@ export function initCommand(product, target, force, log) {
     existing = parent;
   }
   if (!statSync(existing).isDirectory()) {
-    log.error(`${relative(process.cwd(), existing)} exists and is not a directory`);
+    log.error(
+      `We can't set up your project in ${relative(process.cwd(), existing)} because it's not a directory.`,
+    );
     return false;
   }
   const conflicts = [];
@@ -98,15 +100,16 @@ export function initCommand(product, target, force, log) {
   }
   if (conflicts.length > 0 || blockedParents.size > 0) {
     for (const rel of conflicts)
-      log.error(`${relative(process.cwd(), resolve(dir, rel))} already exists`);
+      log.error(`We found an existing file at ${relative(process.cwd(), resolve(dir, rel))}.`);
     for (const parent of blockedParents)
-      log.error(`${relative(process.cwd(), parent)} exists and is not a directory`);
-    if (conflicts.length > 0) log.info(`Use -f to overwrite existing files.`);
+      log.error(`We can't use ${relative(process.cwd(), parent)} because it's not a directory.`);
+    if (conflicts.length > 0)
+      log.info(`If you'd like to replace them, run this again with --force.`);
     return false;
   }
   const root = resolve(dir);
   if (isSymlink(root)) {
-    log.error(`${relative(process.cwd(), root)} is a symbolic link and was rejected`);
+    log.error(`We couldn't use ${relative(process.cwd(), root)} because it's a symbolic link.`);
     return false;
   }
   for (const rel of Object.keys(templates)) {
@@ -114,7 +117,7 @@ export function initCommand(product, target, force, log) {
     const relToRoot = relative(root, output);
     if (relToRoot !== "" && (relToRoot === ".." || relToRoot.startsWith(`..${sep}`))) {
       log.error(
-        `${relative(process.cwd(), output)} resolves outside ${relative(process.cwd(), root)}`,
+        `We can't save ${relative(process.cwd(), output)} because it's outside ${relative(process.cwd(), root)}.`,
       );
       return false;
     }
@@ -123,7 +126,9 @@ export function initCommand(product, target, force, log) {
       if (part === "") continue;
       component = join(component, part);
       if (isSymlink(component)) {
-        log.error(`${relative(process.cwd(), component)} is a symbolic link and was rejected`);
+        log.error(
+          `We couldn't use ${relative(process.cwd(), component)} because it's a symbolic link.`,
+        );
         return false;
       }
     }
@@ -135,6 +140,6 @@ export function initCommand(product, target, force, log) {
     writeFileSync(output, render(product), "utf8");
     log.bullet(relative(process.cwd(), output));
   }
-  log.success(`Initialized ${dir}`);
+  log.success(`All set! Your new project is ready in ${dir}.`);
   return true;
 }

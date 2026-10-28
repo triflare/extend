@@ -27,7 +27,7 @@ export function startDevServer({ host, port, extensionPath, getSource, getTitle 
 
     const { pathname } = new URL(req.url, "http://localhost");
     if (req.method !== "GET" && req.method !== "HEAD") {
-      send(405, "Only GET and HEAD are served here.");
+      send(405, "That action isn't supported here.");
       return;
     }
     if (pathname === "/" || pathname === "/index.html") {

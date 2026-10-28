@@ -4,9 +4,11 @@ import { validateProject } from "../validate.js";
 
 export async function validateCommand(product, configPath, log) {
   const result = await validateProject(configPath);
-  for (const message of result.warnings) log.warn(message);
+  if (result.warnings.length > 0) log.warn(result.warnings.join("\n"));
   if (!result.ok) {
-    for (const message of result.errors) log.error(message);
+    log.error(
+      ["We found a few things to fix. Here's what we noticed:", ...result.errors].join("\n"),
+    );
     return false;
   }
   const { config, root, module: mod } = result.project;
@@ -14,11 +16,12 @@ export async function validateCommand(product, configPath, log) {
   try {
     compiled = compileExtension({ config, root, module: mod }, product);
   } catch (err) {
-    log.error(err.message);
+    log.error(`We couldn't finish checking your extension: ${err.message}`);
     return false;
   }
-  for (const message of riskyPatternWarnings(compiled)) log.warn(message);
+  const risky = riskyPatternWarnings(compiled);
+  if (risky.length > 0) log.warn(risky.join("\n"));
   const count = config.blocks.length;
-  log.success(`${count} block${count === 1 ? "" : "s"} validated`);
+  log.success(`${count} block${count === 1 ? "" : "s"} validated — everything looks good!`);
   return true;
 }

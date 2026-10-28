@@ -28,14 +28,16 @@ export async function buildProduct(product, configPath, outOverride, onValidated
 
 export async function buildCommand(product, configPath, outOverride, log) {
   const result = await buildProduct(product, configPath, outOverride, (config) =>
-    log.progress(`Building ${config.extension?.name ?? config.name ?? "extension"}...`),
+    log.progress(`Getting ${config.extension?.name ?? config.name ?? "your extension"} ready...`),
   );
   if (!result.ok) {
-    for (const message of result.errors) log.error(message);
+    log.error(
+      ["We found a few things to fix. Here's what we noticed:", ...result.errors].join("\n"),
+    );
     return false;
   }
-  for (const message of result.warnings) log.warn(message);
+  if (result.warnings.length > 0) log.warn(result.warnings.join("\n"));
 
-  log.success(`Built ${result.output}`);
+  log.success(`Done! Your extension is ready at ${result.output}.`);
   return true;
 }
