@@ -161,6 +161,21 @@ function collectFiles(root, targets, archivePath) {
       if (target.required) errors.push(`We couldn't find ${display(target.path)}.`);
       continue;
     }
+    // A path can be lexically inside the project while a parent directory is a
+    // symlink out of it, so check where the target actually lives.
+    let actualTarget;
+    try {
+      actualTarget = realpathSync(resolve(target.path));
+    } catch (err) {
+      errors.push(`We couldn't read ${display(target.path)}: ${err.message}`);
+      continue;
+    }
+    if (!inside(realRoot, actualTarget)) {
+      errors.push(
+        `We can't pack ${display(target.path)} because it points outside ${display(root)}.`,
+      );
+      continue;
+    }
     walk(target.path, relative(root, target.path).split(sep).join("/"));
   }
 
@@ -195,13 +210,19 @@ export function packCommand(product, configPath, outOverride, log) {
     return false;
   }
 
-  const entries = [...files.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([name, file]) => ({
-      name,
-      data: readFileSync(file.path),
-      mtime: file.mtime,
-    }));
+  let entries;
+  try {
+    entries = [...files.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([name, file]) => ({
+        name,
+        data: readFileSync(file.path),
+        mtime: file.mtime,
+      }));
+  } catch (err) {
+    log.error(`We couldn't read your project files: ${err.message}`);
+    return false;
+  }
 
   try {
     mkdirSync(dirname(output), { recursive: true });

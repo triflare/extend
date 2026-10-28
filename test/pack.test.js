@@ -179,6 +179,30 @@ test("pack rejects a symlink that points outside the project", (t) => {
   }
 });
 
+test("pack rejects an include reached through a directory symlinked outside", (t) => {
+  const container = mkdtempSync(join(tmpdir(), "extend-pack-"));
+  const dir = join(container, "project");
+  try {
+    mkdirSync(dir);
+    assert.equal(runCli(["init"], dir).status, 0);
+    mkdirSync(join(container, "outside"));
+    writeFileSync(join(container, "outside", "secret.js"), "export const secret = true;");
+    try {
+      symlinkSync(join(container, "outside"), join(dir, "linked"), "dir");
+    } catch (err) {
+      t.skip(`symlinks are unavailable: ${err.message}`);
+      return;
+    }
+    addPackConfig(dir, "pack:\n  include:\n    - linked/secret.js");
+    const result = runCli(["pack"], dir);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /points outside/);
+    assert.ok(!existsSync(join(dir, "dist", "my-extension.zip")));
+  } finally {
+    clean(container);
+  }
+});
+
 test("pack follows --config and includes an entry point outside src", () => {
   const dir = mkdtempSync(join(tmpdir(), "extend-pack-"));
   try {
