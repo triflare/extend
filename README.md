@@ -35,6 +35,11 @@ $ extend build
 
 ~ Getting My Extension ready...
 ✓ Done! Your extension is ready at dist/extension.js.
+
+$ extend pack
+
+~ Packing My Extension...
+✓ Done! Your project is ready to share at dist/my-extension.zip.
 ```
 
 ## Installation
