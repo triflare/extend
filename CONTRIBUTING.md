@@ -101,4 +101,4 @@ CI runs lint, formatting, and tests on Node.js 24. In the pull request, describe
 
 ## Releases
 
-Maintainers cut a release by creating a release in GitHub. Bump the version in both `package.json` and `product.yml` before you do that. The CD workflow publishes to npm.
+Bump the version in both `package.json` and `product.yml`, then push a matching v-prefixed tag, such as `v0.1.0`. That push is what triggers publication: the CD workflow runs on the tag and publishes to npm. Check the publish run afterwards to confirm the release went out.

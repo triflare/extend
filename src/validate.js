@@ -1,3 +1,4 @@
+import { basename } from "node:path";
 import {
   BLOCK_TYPES,
   ARGUMENT_TYPES,
@@ -11,7 +12,6 @@ import {
   resolveSetup,
   pascalCase,
 } from "./compile.js";
-import { configFilename } from "./brand.js";
 import { loadProject } from "./project.js";
 import {
   RUNTIME_GLOBALS,
@@ -155,7 +155,7 @@ export async function validateProject(configPath) {
   validateMethods(errors, mod);
 
   if (!config.extension || typeof config.extension !== "object") {
-    errors.push(`${configFilename()} must define an "extension" section`);
+    errors.push(`${basename(configPath)} must define an "extension" section`);
   } else {
     const ext = config.extension;
     rejectUnknownKeys(errors, ext, EXTENSION_KEYS, "extension");
@@ -197,7 +197,7 @@ export async function validateProject(configPath) {
   }
 
   if (!Array.isArray(config.blocks) || config.blocks.length === 0) {
-    errors.push(`${configFilename()} must define at least one entry in "blocks"`);
+    errors.push(`${basename(configPath)} must define at least one entry in "blocks"`);
   } else {
     const declared = new Set();
     const published = new Set();
@@ -365,7 +365,9 @@ export async function validateProject(configPath) {
     }
     for (const [opcode, handler] of Object.entries(mod.blocks)) {
       if (typeof handler === "function" && !declared.has(opcode)) {
-        warnings.push(`Handler "${opcode}" is exported but not declared in ${configFilename()}`);
+        warnings.push(
+          `Handler "${opcode}" is exported but not declared in ${basename(configPath)}`,
+        );
       }
     }
     validateReferences(errors, project);

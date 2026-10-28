@@ -14,5 +14,5 @@ updates:
       interval: "daily"
     labels:
       - "type: chore"
-      - "ci: github-actions"
+      - "ci: github actions"
       - "area: dependencies"
