@@ -11,7 +11,7 @@ import {
   resolveSetup,
   pascalCase,
 } from "./compile.js";
-import { loadProject, readProjectConfig } from "./project.js";
+import { loadProject } from "./project.js";
 import {
   RUNTIME_GLOBALS,
   handlerFreeVariables,
@@ -131,26 +131,6 @@ function validateMethods(errors, mod) {
       errors.push(`Method "${name}" conflicts with a generated extension method`);
     }
   }
-}
-
-// Every registry command that acts on the project's extension (yank, tag,
-// deprecate) needs the same id, read from the same place, refused the same way.
-export function readExtensionId(configPath, command) {
-  let id;
-  try {
-    id = readProjectConfig(configPath).extension?.id;
-  } catch {
-    id = undefined;
-  }
-  if (!id) {
-    throw new Error(
-      `"${configPath}" has no extension.id; run twext ${command} from the project directory.`,
-    );
-  }
-  if (typeof id !== "string" || !EXTENSION_ID_PATTERN.test(id)) {
-    throw new Error(`extension.id "${id}" is invalid; expected 1-64 lower-case letters or digits.`);
-  }
-  return id;
 }
 
 export async function validateProject(configPath) {

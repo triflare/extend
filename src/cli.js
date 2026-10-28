@@ -7,19 +7,6 @@ import { initCommand } from "./commands/init.js";
 import { validateCommand } from "./commands/validate.js";
 import { buildCommand } from "./commands/build.js";
 import { devCommand } from "./commands/dev.js";
-import { loginCommand } from "./commands/login.js";
-import { signupCommand } from "./commands/signup.js";
-import { logoutCommand } from "./commands/logout.js";
-import { publishCommand } from "./commands/publish.js";
-import { checkoutCommand } from "./commands/checkout.js";
-import { yankCommand } from "./commands/yank.js";
-import { deprecateCommand } from "./commands/deprecate.js";
-import { tagCommand } from "./commands/tag.js";
-import { infoCommand } from "./commands/info.js";
-import { searchCommand } from "./commands/search.js";
-import { notificationsCommand } from "./commands/notifications.js";
-import { tokenCommand } from "./commands/token.js";
-import { orgCommand } from "./commands/org.js";
 
 const OPTIONS = {
   help: { type: "boolean", short: "h" },
@@ -27,22 +14,6 @@ const OPTIONS = {
   config: { type: "string", short: "c" },
   out: { type: "string", short: "o" },
   force: { type: "boolean", short: "f" },
-  url: { type: "string", short: "u" },
-  namespace: { type: "string", short: "n" },
-  password: { type: "string" },
-  "display-name": { type: "string" },
-  token: { type: "string" },
-  name: { type: "string" },
-  scope: { type: "string", multiple: true },
-  "expires-in-days": { type: "string" },
-  read: { type: "boolean" },
-  json: { type: "boolean" },
-  sort: { type: "string" },
-  clear: { type: "boolean" },
-  bio: { type: "string" },
-  website: { type: "string" },
-  github: { type: "string" },
-  license: { type: "string" },
   port: { type: "string", short: "p" },
 };
 
@@ -56,42 +27,13 @@ Commands:
   dev           Rebuild on change and serve the extension at http://localhost:${product.defaults.devPort}
   validate      Check blocks against the entryPoint handlers
   init          Scaffold a new project in a directory
-  login         Sign in to a TwextHub hub
-  signup        Create a new account on a TwextHub hub
-  logout        Revoke the stored session at the hub and forget the credentials
-  publish       Validate, build, and publish to the hub
-  checkout      Download a published extension's sources (twext checkout myext@1.2.0)
-  yank          Remove a published version from the hub (e.g. twext yank 1.0.0)
-  deprecate     Flag a version, or drop the flag with --clear
-  tag           Manage dist-tags (twext tag set latest 1.2.0)
-  info          Registry info for an extension (twext info myext@^1.2)
-  search        Search published extensions (twext search turbo)
-  notifications List hub notifications (--read marks them read)
-  token         Manage automation tokens (create, list, revoke)
-  org           Manage organizations (e.g. twext org create acme)
   help          Show this help
 
 Options:
   -c, --config <file>      Path to ${product.defaults.configFilename} (default: ${product.defaults.configFilename})
   -o, --out <file>         Override the output path (build, dev)
   -p, --port <number>      Port for the dev server (default: ${product.defaults.devPort})
-  -f, --force              Overwrite existing files (init only); confirms org delete
-  -u, --url <base>         Hub API base URL (default: https://twexts.sdisk.us/api/v2)
-  -n, --namespace <name>   Namespace to act as (login/signup/publish; login default: stored)
-  --password <password>    Account password (login/signup; prompts when omitted)
-  --display-name <name>    Display name (signup; org create/update)
-  --token <token>          Bearer token override (default: \\$TWEXTHUB_TOKEN, then stored)
-  --name <name>            Token name (token create only)
-  --scope <scope>          Token scope, repeatable (token create only; default: publish)
-  --expires-in-days <days> Token lifetime (token create only)
-  --read                   Mark the listed notifications as read (notifications only)
-  --json                   Print the result as JSON (info, search, notifications, org list, tag list, token list)
-  --sort <key>             Order: recent, downloads, updated, name (search, org extensions)
-  --clear                  Drop a deprecation message (deprecate only)
-  --bio <text>             Organization bio, "" clears it (org create/update)
-  --website <url>          Organization website, "" clears it (org create/update)
-  --github <user>          GitHub username, "" clears it (org create/update)
-  --license <id>           SPDX license to filter by (org extensions only)
+  -f, --force              Overwrite existing files (init only)
   -h, --help               Show this help
   -v, --version            Print the version`;
 }
@@ -126,52 +68,6 @@ async function main(args) {
         : 1;
     case "dev":
       return (await devCommand(product, configPath, values, log)) ? 0 : 1;
-    case "login":
-      return (await loginCommand(product, values, log)) ? 0 : 1;
-    case "signup":
-      return (await signupCommand(product, values, log)) ? 0 : 1;
-    case "logout":
-      return (await logoutCommand(product, log)) ? 0 : 1;
-    case "publish":
-      return (await publishCommand(product, configPath, values, log)) ? 0 : 1;
-    case "checkout":
-      return (await checkoutCommand(product, positionals[1], positionals[2], values, log)) ? 0 : 1;
-    case "yank":
-      return (await yankCommand(product, positionals[1], configPath, values, log)) ? 0 : 1;
-    case "deprecate":
-      return (await deprecateCommand(
-        product,
-        positionals[1],
-        positionals.slice(2),
-        configPath,
-        values,
-        log,
-      ))
-        ? 0
-        : 1;
-    case "tag":
-      return (await tagCommand(
-        product,
-        positionals[1],
-        positionals.slice(2),
-        configPath,
-        values,
-        log,
-      ))
-        ? 0
-        : 1;
-    case "info":
-      return (await infoCommand(product, positionals[1], values, log)) ? 0 : 1;
-    case "search":
-      return (await searchCommand(product, positionals.slice(1), values, log)) ? 0 : 1;
-    case "notifications":
-      return (await notificationsCommand(product, values, log)) ? 0 : 1;
-    case "token":
-      return (await tokenCommand(product, positionals[1], positionals.slice(2), values, log))
-        ? 0
-        : 1;
-    case "org":
-      return (await orgCommand(product, positionals[1], positionals.slice(2), values, log)) ? 0 : 1;
     default:
       log.error(`Unknown command "${command}"`);
       console.log(helpText(product));
