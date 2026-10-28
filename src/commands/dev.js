@@ -10,7 +10,7 @@ const workerPath = fileURLToPath(new URL("../dev-build.js", import.meta.url));
 const SERVED_PATH = "/extension.js";
 const DEBOUNCE_MS = 50;
 
-// A build reads twext.yml and the module graph the entry point imports, so
+// A build reads the config file and the module graph the entry point imports, so
 // nothing else in the project is worth a rebuild. Without this, a log file
 // written into the project rebuilds on every line it writes.
 const SOURCE_EXTENSIONS = new Set([".js", ".mjs", ".cjs", ".json", ".yml", ".yaml"]);
@@ -84,7 +84,7 @@ export async function devCommand(product, configPath, { port, out }, log) {
 
   const listenPort = port === undefined ? product.defaults.devPort : Number(port);
   if (!Number.isInteger(listenPort) || listenPort < 0 || listenPort > 65535) {
-    log.error(`"${port}" is not a port number`);
+    log.error(`That doesn't look like a port number. Choose a number from 0 to 65535.`);
     return false;
   }
 
@@ -122,13 +122,15 @@ export async function devCommand(product, configPath, { port, out }, log) {
   const compileInProcess = async () => {
     const result = await buildProduct(product, configPath, out);
     if (!result.ok) {
-      for (const message of result.errors) log.error(message);
+      log.error(
+        ["We found a few things to fix. Here's what we noticed:", ...result.errors].join("\n"),
+      );
       return false;
     }
-    for (const message of result.warnings) log.warn(message);
+    if (result.warnings.length > 0) log.warn(result.warnings.join("\n"));
     readSettings(result.config);
     source = readFileSync(result.output, "utf8");
-    log.success(`Built ${relative(process.cwd(), result.output) || result.output}`);
+    log.success(`Ready to preview at ${relative(process.cwd(), result.output) || result.output}`);
     return true;
   };
 
@@ -136,7 +138,7 @@ export async function devCommand(product, configPath, { port, out }, log) {
   // the process, and the entry point's static imports can't be cache-busted.
   const compile = async () => {
     try {
-      // twext.yml can move the output or rename the extension between builds.
+      // the config can move the output or rename the extension between builds.
       readSettings(readProjectConfig(configPath));
     } catch (err) {
       log.error(err.message);
@@ -144,12 +146,12 @@ export async function devCommand(product, configPath, { port, out }, log) {
     }
     const result = await buildInChildProcess(configPath, output);
     if (!result.ok) {
-      log.error("Build failed");
+      log.error("We hit a problem while building. Here's what we found:");
       if (result.stderr.trim()) log.raw(result.stderr.trimEnd());
       return false;
     }
     source = readFileSync(output, "utf8");
-    log.success(`Built ${relative(process.cwd(), output) || output}`);
+    log.success(`Ready to preview at ${relative(process.cwd(), output) || output}`);
     return true;
   };
 
@@ -167,15 +169,15 @@ export async function devCommand(product, configPath, { port, out }, log) {
   } catch (err) {
     log.error(
       err.code === "EADDRINUSE"
-        ? `Port ${listenPort} is in use. Pass --port to serve somewhere else.`
+        ? `That port is already in use. Try a different one with --port.`
         : err.message,
     );
     return false;
   }
 
-  log.success(`Serving ${server.extensionUrl}`);
-  if (!built) log.warn("Nothing to serve yet; fix the error and it will pick the change up.");
-  log.progress(`Watching ${root}. Press Ctrl+C to stop.`);
+  log.success(`Preview ready at ${server.extensionUrl}`);
+  if (!built) log.warn("Nothing to preview yet — fix the error and we'll pick up the change.");
+  log.progress("Watching for changes. Press Ctrl+C when you're done.");
 
   let timer = null;
   let pending = null;
@@ -193,7 +195,7 @@ export async function devCommand(product, configPath, { port, out }, log) {
     const changed = pending;
     pending = null;
     try {
-      if (changed) log.progress(`${changed} changed`);
+      if (changed) log.progress(`We noticed a change in ${changed} and updated your preview.`);
       await compile();
     } finally {
       building = false;

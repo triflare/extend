@@ -1,92 +1,56 @@
-# 📦 Twext
+<div align="center">
 
-[![CI](https://github.com/twextjs/twext/actions/workflows/ci.yml/badge.svg)](https://github.com/twext/cli/actions/workflows/ci.yml) [![CD](https://github.com/twextjs/twext/actions/workflows/cd.yml/badge.svg)](https://github.com/twext/cli/actions/workflows/cd.yml)
+<img src="assets/icon.svg" width="75" alt="The Triflare Extend logo" style="padding-bottom: 20px;"/>
 
-> _Build custom TurboWarp extensions with JavaScript modules (ESM)._
+# Triflare Extend
 
-## 📕 Table of Contents
+Build, test, and ship extensions.
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+</div>
 
-- [🌟 Highlights](#-highlights)
-- [ℹ️ Overview](#-overview)
-  - [✍️ Authors](#-authors)
-- [🚀 Usage](#-usage)
-- [⬇️ Installation](#-installation)
-  - [Prerequisites](#prerequisites)
-  - [Steps](#steps)
-- [💭 Feedback and Contributing](#-feedback-and-contributing)
-- [Also See...](#also-see)
+## Highlights
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+- **Use modules to build extensions:** With Triflare Extend, you can use JavaScript modules to build your TurboWarp extension, instead of keeping your entire codebase in one file.
+- **For larger projects:** The larger your project gets, the harder it gets to maintain because it's all in one file. Triflare Extend builds your extension from multiple files instead.
+- **Feature parity:** Triflare Extend has the same features as TurboWarp's vanilla extension system, including the development server.
+- **Was it built with Extend?** Extensions built with Triflare Extend are almost identical to extensions that weren't.
 
-## 🌟 Highlights
-
-- Built output looks almost identical to extensions that were not built with Twext.
-- The CLI can also validate your extension, checking for inconsistencies or errors in your configuration.
-- You can publish to a registry of extensions that were also created with Twext using the CLI. [Read more about TwextHub.](./docs/twexthub.md)
-
-## ℹ️ Overview
+## Overview
 
 Large JavaScript projects are usually multiple files. TurboWarp extensions should be the same, but they aren't.
 
-Twext is a zero-config custom TurboWarp extension build tool meant to solve the problem that _large extensions get harder to build the larger they are_. With Twext, you can use ESM syntax to build an extension, instead of coding one in one file.
+Triflare Extend is a zero-config custom TurboWarp extension build tool meant to solve the problem that large extensions get harder to build the larger they are. With Triflare Extend, you can use module syntax to build an extension, instead of coding one in one file.
 
-### ✍️ Authors
-
-> **AI Disclosure:** AI was used in the development of Twext.
-
-- [@kamixfox](https://github.com/kamixfox)
-
-## 🚀 Usage
-
-1. Install Twext using `npm` (_from source_):
-
-   ```bash
-   npm install
-   ```
-
-2. Scaffold your project:
-
-   ```bash
-   node src/cli.js init
-   ```
-
-3. Build the scaffolded extension:
-
-   ```bash
-   node src/cli.js # or twext build
-   ```
-
-To learn how to use Twext _and_ build a functioning extension at the same time, see [Build Your Extension.](./docs/build-your-extension.md)
-
-## ⬇️ Installation
-
-### Prerequisites
-
-To install Twext, you will need:
-
-1. A computer running Windows, MacOS, or a Linux distro.
-2. Node.js (recommended v24) installed with `npm`.
-
-### Steps
-
-Install with `npm`:
+## Usage
 
 ```bash
-npm install @twextjs/twext
+$ extend init
+
+  • extend.yml
+  • src/index.js
+  • src/blocks/hello.js
+✓ All set! Your new project is ready.
+
+$ extend build
+
+~ Getting My Extension ready...
+✓ Done! Your extension is ready at dist/extension.js.
 ```
 
-## 💭 Feedback and Contributing
+## Installation
 
-Discussions are turned off here, just open an issue if you have a question, or if you find a bug/a new feature to add.
+**Requirements:**
 
-If you want to contribute to this project, feel free! See the [Development Guide.](./docs/development.md)
+- At least Node.js v24.
 
-## Also See...
+To use `extend` raw instead of `npx @triflare/extend`, install Triflare Extend globally:
 
-- [Documentation](./docs/index.md)
-- [CLI Reference](./docs/cli.md)
-- [Twext Configuration](./docs/configuration.md)
-- [Agent Guide](./AGENT.md)
+```bash
+npm i -g @triflare/extend
+```
+
+## Feedback and Contributing
+
+If you've found a bug, or you want a new feature, please [open an issue](https://github.com/triflare/extend/issues). If you'd rather implement it yourself, make your changes and [open a pull request](https://github.com/triflare/extend/pulls).
+
+Thank you for improving Triflare Extend! It's people like you who make open-source projects like these thrive.

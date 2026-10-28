@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { loadProduct } from "./config.js";
 
 // The headers TurboWarp's own development server sends. A browser happily
 // reuses a script it already ran, so without "no-store" an edit looks like it
@@ -26,7 +27,7 @@ export function startDevServer({ host, port, extensionPath, getSource, getTitle 
 
     const { pathname } = new URL(req.url, "http://localhost");
     if (req.method !== "GET" && req.method !== "HEAD") {
-      send(405, "Only GET and HEAD are served here.");
+      send(405, "That action isn't supported here.");
       return;
     }
     if (pathname === "/" || pathname === "/index.html") {
@@ -40,7 +41,11 @@ export function startDevServer({ host, port, extensionPath, getSource, getTitle 
 
     const source = getSource();
     if (source === null) {
-      send(500, "Build failed. See the output of the twext process.\n");
+      const product = loadProduct();
+      send(
+        500,
+        `Something went wrong while building. See the ${product.command} output for details.\n`,
+      );
       return;
     }
     send(200, source, "application/javascript; charset=utf-8");

@@ -1,7 +1,8 @@
 import { existsSync, lstatSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
+import { brandingColors } from "../brand.js";
 
-function templateYml(fallbackColor) {
+function templateYml(colors) {
   return `name: "my-extension"
 version: "0.1.0"
 description: ""
@@ -15,9 +16,9 @@ extension:
   id: "myextension"
   name: "My Extension"
   className: "MyExtension"
-  color1: "${fallbackColor}"
-  color2: "${fallbackColor}"
-  color3: "${fallbackColor}"
+  color1: "${colors.primary}"
+  color2: "${colors.secondary}"
+  color3: "${colors.tertiary}"
 
 blocks:
   - opcode: hello
@@ -46,11 +47,13 @@ function templateHello() {
 `;
 }
 
-const FILES = {
-  "twext.yml": (product) => templateYml(product.defaults.fallbackColor ?? "#0070F3"),
-  "src/index.js": () => templateIndex(),
-  "src/blocks/hello.js": () => templateHello(),
-};
+function files(product) {
+  return {
+    [product.defaults.configFilename]: () => templateYml(brandingColors()),
+    "src/index.js": () => templateIndex(),
+    "src/blocks/hello.js": () => templateHello(),
+  };
+}
 
 function parentDirs(dir, rel) {
   const out = [];
@@ -72,6 +75,7 @@ function isSymlink(p) {
 
 export function initCommand(product, target, force, log) {
   const dir = resolve(target ?? ".");
+  const templates = files(product);
   let existing = dir;
   while (!existsSync(existing)) {
     const parent = dirname(existing);
@@ -79,38 +83,41 @@ export function initCommand(product, target, force, log) {
     existing = parent;
   }
   if (!statSync(existing).isDirectory()) {
-    log.error(`${relative(process.cwd(), existing)} exists and is not a directory`);
+    log.error(
+      `We can't set up your project in ${relative(process.cwd(), existing)} because it's not a directory.`,
+    );
     return false;
   }
   const conflicts = [];
-  for (const rel of Object.keys(FILES)) {
+  for (const rel of Object.keys(templates)) {
     if (existsSync(join(dir, rel)) && !force) conflicts.push(rel);
   }
   const blockedParents = new Set();
-  for (const rel of Object.keys(FILES)) {
+  for (const rel of Object.keys(templates)) {
     for (const parent of parentDirs(dir, rel)) {
       if (existsSync(parent) && !statSync(parent).isDirectory()) blockedParents.add(parent);
     }
   }
   if (conflicts.length > 0 || blockedParents.size > 0) {
     for (const rel of conflicts)
-      log.error(`${relative(process.cwd(), resolve(dir, rel))} already exists`);
+      log.error(`We found an existing file at ${relative(process.cwd(), resolve(dir, rel))}.`);
     for (const parent of blockedParents)
-      log.error(`${relative(process.cwd(), parent)} exists and is not a directory`);
-    if (conflicts.length > 0) log.info(`Use -f to overwrite existing files.`);
+      log.error(`We can't use ${relative(process.cwd(), parent)} because it's not a directory.`);
+    if (conflicts.length > 0)
+      log.info(`If you'd like to replace them, run this again with --force.`);
     return false;
   }
   const root = resolve(dir);
   if (isSymlink(root)) {
-    log.error(`${relative(process.cwd(), root)} is a symbolic link and was rejected`);
+    log.error(`We couldn't use ${relative(process.cwd(), root)} because it's a symbolic link.`);
     return false;
   }
-  for (const rel of Object.keys(FILES)) {
+  for (const rel of Object.keys(templates)) {
     const output = resolve(root, rel);
     const relToRoot = relative(root, output);
     if (relToRoot !== "" && (relToRoot === ".." || relToRoot.startsWith(`..${sep}`))) {
       log.error(
-        `${relative(process.cwd(), output)} resolves outside ${relative(process.cwd(), root)}`,
+        `We can't save ${relative(process.cwd(), output)} because it's outside ${relative(process.cwd(), root)}.`,
       );
       return false;
     }
@@ -119,18 +126,20 @@ export function initCommand(product, target, force, log) {
       if (part === "") continue;
       component = join(component, part);
       if (isSymlink(component)) {
-        log.error(`${relative(process.cwd(), component)} is a symbolic link and was rejected`);
+        log.error(
+          `We couldn't use ${relative(process.cwd(), component)} because it's a symbolic link.`,
+        );
         return false;
       }
     }
   }
   mkdirSync(dir, { recursive: true });
-  for (const [rel, render] of Object.entries(FILES)) {
+  for (const [rel, render] of Object.entries(templates)) {
     const output = resolve(root, rel);
     mkdirSync(dirname(output), { recursive: true });
     writeFileSync(output, render(product), "utf8");
     log.bullet(relative(process.cwd(), output));
   }
-  log.success(`Initialized ${dir}`);
+  log.success(`All set! Your new project is ready in ${dir}.`);
   return true;
 }

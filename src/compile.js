@@ -1,3 +1,4 @@
+import { brandingColors } from "./brand.js";
 import { parseFunctionSource } from "./function-source.js";
 
 export const BLOCK_TYPES = {
@@ -27,7 +28,7 @@ export const ARGUMENT_TYPES = {
   sound: "Scratch.ArgumentType.SOUND",
 };
 
-// TurboWarp's getInfo() carries more fields than Twext structures itself. The
+// TurboWarp's getInfo() carries more fields than the compiler structures itself. The
 // compiler copies these through verbatim and validate.js is what keeps the list
 // honest, so a key that reaches the output is a key that was type-checked.
 const INFO_PASSTHROUGH = ["docsURI", "menuIconURI", "blockIconURI"];
@@ -398,7 +399,7 @@ export function emittedMethodNames(config, mod) {
 export function compileExtension(project, product) {
   const { config, module: mod } = project;
   const ext = config.extension ?? {};
-  const fallback = product?.defaults?.fallbackColor ?? "#0070F3";
+  const fallback = brandingColors(product).primary;
   const derived = pascalCase(ext.id || "Extension") + "Extension";
   const rawClassName = ext.className || derived;
   const className = validIdentifier(rawClassName) ? rawClassName : `_${pascalCase(rawClassName)}`;
