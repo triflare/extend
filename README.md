@@ -8,6 +8,19 @@ Build, test, and ship extensions.
 
 </div>
 
+## Table of Contents
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Highlights](#highlights)
+- [Overview](#overview)
+- [Usage](#usage)
+- [Installation](#installation)
+- [Feedback and Contributing](#feedback-and-contributing)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Highlights
 
 - **Use modules to build extensions:** With Triflare Extend, you can use JavaScript modules to build your TurboWarp extension, instead of keeping your entire codebase in one file.

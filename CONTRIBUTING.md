@@ -4,6 +4,22 @@ Thank you for contributing to Triflare Extend! Now, here are the technical bits:
 
 Extend is a Node.js CLI with no build step. The source in `src/` runs as-is, so you can test a change with the same command people use after installing the package.
 
+## Table of Contents
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Set up](#set-up)
+- [Run the CLI](#run-the-cli)
+- [Project layout](#project-layout)
+- [Tests](#tests)
+- [Code style](#code-style)
+- [Commits](#commits)
+- [Pull requests](#pull-requests)
+- [Releases](#releases)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Set up
 
 You need Node.js 24 or newer and npm.
