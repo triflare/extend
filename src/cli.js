@@ -8,6 +8,7 @@ import { initCommand } from "./commands/init.js";
 import { validateCommand } from "./commands/validate.js";
 import { buildCommand } from "./commands/build.js";
 import { devCommand } from "./commands/dev.js";
+import { packCommand } from "./commands/pack.js";
 
 const OPTIONS = {
   help: { type: "boolean", short: "h" },
@@ -15,6 +16,7 @@ const OPTIONS = {
   config: { type: "string", short: "c" },
   out: { type: "string", short: "o" },
   force: { type: "boolean", short: "f" },
+  overwrite: { type: "boolean" },
   port: { type: "string", short: "p" },
 };
 
@@ -29,14 +31,16 @@ Commands:
   init          Create a new extension project to build on
   build         Get your extension ready to use (default)
   dev           Preview your extension as you make changes
+  pack          Share your project's source as a zip
   validate      Check your extension for quick fixes
   help          Show this help
 
 Options:
   -c, --config <file>      Path to your config file (default: ${product.defaults.configFilename})
-  -o, --out <file>         Save to a specific location (build, dev)
+  -o, --out <file>         Save to a specific location (build, dev, pack)
   -p, --port <number>      Choose a port for preview (default: ${product.defaults.devPort})
   -f, --force              Overwrite existing files (init only)
+  --overwrite              Replace an existing archive (pack)
   -h, --help               Show this help
   -v, --version            See your version
 
@@ -73,6 +77,16 @@ async function main(args) {
         : 1;
     case "dev":
       return (await devCommand(product, configPath, values, log)) ? 0 : 1;
+    case "pack":
+      return packCommand(
+        product,
+        configPath,
+        values.out ? resolve(values.out) : null,
+        values.overwrite,
+        log,
+      )
+        ? 0
+        : 1;
     default:
       log.error(
         `We don't recognize that command: "${command}". Try '${brandText(product.command, process.stderr)} help' to see what's available.`,

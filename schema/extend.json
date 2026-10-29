@@ -35,6 +35,25 @@
       "type": "string",
       "description": "Where extend build writes the compiled extension. Defaults to dist/extension.js."
     },
+    "pack": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What extend pack includes in the source archive.",
+      "properties": {
+        "include": {
+          "type": "array",
+          "description": "Extra files or directories to include. Paths are relative to the config file.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "outputPath": {
+          "type": "string",
+          "description": "Where extend pack writes the archive. Defaults to dist/<name>.zip."
+        }
+      }
+    },
     "extension": {
       "$ref": "#/definitions/extension"
     },

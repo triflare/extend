@@ -1,6 +1,6 @@
 {
   "name": "@triflare/extend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Build, test, and ship extensions.",
   "author": "Triflare",
   "license": "Apache-2.0",
