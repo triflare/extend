@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
   existsSync,
+  linkSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -346,6 +348,32 @@ for (const filename of ["src/index.js", "extend.yml"]) {
     }
   });
 }
+
+test("pack rejects an output hardlinked to a packed file even with --overwrite", () => {
+  const dir = tmpProject();
+  try {
+    const source = join(dir, "src", "index.js");
+    const before = readFileSync(source);
+    const stats = statSync(source);
+    const output = join(dir, "share.zip");
+    linkSync(source, output);
+    for (const flags of [[], ["--overwrite"]]) {
+      const result = runCli(["pack", "--out", output, ...flags], dir);
+      assert.equal(result.status, 1, result.stderr);
+      assert.match(result.stderr, /one of the files being packed/);
+      assert.doesNotMatch(result.stderr, /--overwrite/);
+      assert.deepEqual(readFileSync(source), before);
+      assert.deepEqual(readFileSync(output), before);
+      for (const path of [source, output]) {
+        const after = statSync(path);
+        assert.equal(after.dev, stats.dev);
+        assert.equal(after.ino, stats.ino);
+      }
+    }
+  } finally {
+    clean(dir);
+  }
+});
 
 for (const type of ["file", "dir"]) {
   test(`pack rejects an output collision through a ${type} symlink`, (t) => {

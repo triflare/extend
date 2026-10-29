@@ -85,7 +85,8 @@ function packTargets(config, settings, root, configPath) {
 
 function collectFiles(root, targets, archivePath) {
   const realRoot = realpathSync(root);
-  const actualArchive = existsSync(archivePath) ? realpathSync(archivePath) : resolve(archivePath);
+  const archiveStats = existsSync(archivePath) ? statSync(archivePath) : null;
+  const actualArchive = archiveStats ? realpathSync(archivePath) : resolve(archivePath);
   const files = new Map();
   const errors = [];
   let visited = new Set();
@@ -136,7 +137,10 @@ function collectFiles(root, targets, archivePath) {
     }
 
     if (!stats.isFile()) return;
-    if (actual === actualArchive) {
+    if (
+      actual === actualArchive ||
+      (archiveStats && stats.dev === archiveStats.dev && stats.ino === archiveStats.ino)
+    ) {
       outputCollision = true;
       return;
     }
