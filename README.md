@@ -16,6 +16,7 @@ Build, test, and ship extensions.
 - [Highlights](#highlights)
 - [Overview](#overview)
 - [Usage](#usage)
+  - [Publishing to Triflare Marketplace](#publishing-to-triflare-marketplace)
 - [Installation](#installation)
 - [Feedback and Contributing](#feedback-and-contributing)
 
@@ -53,6 +54,31 @@ $ extend pack
 
 ~ Packing My Extension...
 ✓ Done! Your project is ready to share at dist/my-extension.zip.
+```
+
+### Publishing to Triflare Marketplace
+
+`extend login` shows a code that you approve in the browser. `extend publish` uploads the project source, and the marketplace compiles it, so `dist/` is never part of the upload. An account's first publish waits for review.
+
+```bash
+$ extend login
+~ Asking https://marketplace.sdisk.us/api/v1 for a sign-in code...
+✓ Open https://marketplace.sdisk.us/device?user_code=ABCD-EFGH to approve.
+  Code: ABCD-EFGH
+✓ Signed in as @yourname.
+
+$ extend publish
+~ Uploading @yourname/my-extension@1.0.0...
+✓ Published @yourname/my-extension@1.0.0.
+```
+
+`extend versions` lists what is published, and `extend unpublish <version>` hides one from listings while leaving it downloadable. `extend publish --namespace my-org` publishes under an organization you own, and `--api` (or `TRIFLARE_API`) points at a different instance.
+
+For CI, create a token once and pass it in the environment instead of signing in:
+
+```bash
+$ extend token create --scopes publish,yank --name "CI publish"
+$ TRIFLARE_TOKEN=... extend publish
 ```
 
 ## Installation
