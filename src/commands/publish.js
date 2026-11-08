@@ -226,10 +226,21 @@ export async function publishCommand(product, configPath, values, log) {
     const check = ["extend versions"];
     if (values.namespace) check.push(`--namespace ${values.namespace}`);
     if (values.api) check.push(`--api ${values.api}`);
-    if (values.config) check.push(`--config '${values.config.replaceAll("'", "'\\''")}'`);
-    log.raw(
-      `  The marketplace didn't say whether it's live yet. Run \`${check.join(" ")}\` to check.`,
-    );
+    if (values.config) {
+      const options = ["namespace", "api", "config"]
+        .filter((name) => values[name])
+        .map((name) => `    --${name}: ${JSON.stringify(values[name])}`);
+      log.raw(
+        [
+          "  The marketplace didn't say whether it's live yet. Run `extend versions` with these option values to check (shown as JSON strings; quote them for your shell):",
+          ...options,
+        ].join("\n"),
+      );
+    } else {
+      log.raw(
+        `  The marketplace didn't say whether it's live yet. Run \`${check.join(" ")}\` to check.`,
+      );
+    }
     if (values.token)
       log.raw("  Set TRIFLARE_TOKEN to the token you used with --token before running it.");
   }

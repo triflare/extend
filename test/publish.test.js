@@ -1,6 +1,5 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import { cpSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -33,24 +32,22 @@ test("publish recovery retains options and explains how to reuse a flag token", 
   assert.equal(await publishCommand(loadProduct(), config, values, log), true);
   const guidance = messages.find((message) => message.includes("The marketplace didn't say"));
   assert.ok(guidance);
-  const command = guidance.slice(
-    guidance.indexOf("Run `") + 5,
-    guidance.lastIndexOf("` to check."),
+  assert.equal(
+    guidance,
+    [
+      "  The marketplace didn't say whether it's live yet. Run `extend versions` with these option values to check (shown as JSON strings; quote them for your shell):",
+      `    --namespace: ${JSON.stringify(values.namespace)}`,
+      `    --api: ${JSON.stringify(values.api)}`,
+      `    --config: ${JSON.stringify(config)}`,
+    ].join("\n"),
   );
-  const parsed = spawnSync("sh", ["-c", `set -- ${command}; printf '%s\\0' "$@"`], {
-    encoding: "utf8",
-  });
-  assert.equal(parsed.status, 0, parsed.stderr);
-  assert.deepEqual(parsed.stdout.split("\0").slice(0, -1), [
-    "extend",
-    "versions",
-    "--namespace",
-    "demo",
-    "--api",
-    values.api,
-    "--config",
-    config,
-  ]);
+  assert.deepEqual(
+    guidance
+      .split("\n")
+      .slice(1)
+      .map((line) => JSON.parse(line.slice(line.indexOf(": ") + 2))),
+    [values.namespace, values.api, config],
+  );
   assert.match(messages.join("\n"), /Set TRIFLARE_TOKEN to the token you used with --token/);
   assert.ok(!messages.join("\n").includes(secret));
 });
