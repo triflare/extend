@@ -52,6 +52,17 @@ function problemMessage(status, problem, headers) {
   return lines.join("\n");
 }
 
+function transportError(baseUrl, err, timeoutMs) {
+  if (err.name === "TimeoutError" || err.name === "AbortError") {
+    return new MarketplaceError(
+      `The marketplace didn't answer within ${Math.round(timeoutMs / 1000)} seconds.`,
+      { status: 0 },
+    );
+  }
+  const reason = err.cause?.code ?? err.cause?.message ?? err.message;
+  return new MarketplaceError(`We couldn't reach ${baseUrl}: ${reason}`, { status: 0 });
+}
+
 export async function apiRequest(baseUrl, path, options = {}) {
   const {
     method = "GET",
@@ -80,24 +91,27 @@ export async function apiRequest(baseUrl, path, options = {}) {
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (err) {
-    if (err.name === "TimeoutError" || err.name === "AbortError") {
-      throw new MarketplaceError(
-        `The marketplace didn't answer within ${Math.round(timeoutMs / 1000)} seconds.`,
-        { status: 0 },
-      );
-    }
-    const reason = err.cause?.code ?? err.cause?.message ?? err.message;
-    throw new MarketplaceError(`We couldn't reach ${baseUrl}: ${reason}`, { status: 0 });
+    throw transportError(baseUrl, err, timeoutMs);
   }
 
   const requestId = response.headers.get("x-request-id");
   const type = response.headers.get("content-type") ?? "";
   let data;
-  if (type.includes("json")) {
-    data = await response.json().catch(() => null);
-  } else {
-    const text = await response.text().catch(() => "");
-    data = text === "" ? null : text;
+  try {
+    if (type.includes("json")) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      data = text === "" ? null : text;
+    }
+  } catch (err) {
+    // A read that breaks mid-body on a successful response is a transport
+    // failure, not an empty answer. Absent or invalid JSON keeps the existing
+    // empty-body handling, and an error response keeps its HTTP status.
+    if (response.ok && !(err instanceof SyntaxError)) {
+      throw transportError(baseUrl, err, timeoutMs);
+    }
+    data = null;
   }
 
   if (!response.ok) {

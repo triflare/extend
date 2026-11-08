@@ -42,8 +42,8 @@ async function checkLocally(product, configPath, log) {
 }
 
 // The registry's build imports the entry point as an ES module, so the copy in
-// the upload is marked accordingly. The project's own package.json is never
-// rewritten.
+// the upload is marked accordingly. A project that declares CommonJS is refused
+// rather than relabelled. The project's own package.json is never rewritten.
 function archivedPackageJson(data, log) {
   let parsed;
   try {
@@ -53,6 +53,11 @@ function archivedPackageJson(data, log) {
   }
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("Your package.json must contain a JSON object.");
+  }
+  if (parsed.type === "commonjs") {
+    throw new Error(
+      'Your package.json marks this project as CommonJS, but the marketplace builds entry points as ES modules. Change "type" to "module" and use import/export, then publish again.',
+    );
   }
   if (parsed.type !== "module") {
     log.warn(
@@ -218,7 +223,13 @@ export async function publishCommand(product, configPath, values, log) {
     else if (url) log.raw(`  ${url}`);
   } else {
     log.success(`Uploaded @${namespace}/${manifest.id}@${version}.`);
-    log.raw("  The marketplace didn't say whether it's live yet. Run `extend versions` to check.");
+    const check = ["extend versions"];
+    if (values.namespace) check.push(`--namespace ${values.namespace}`);
+    if (values.api) check.push(`--api ${values.api}`);
+    if (values.config) check.push(`--config ${values.config}`);
+    log.raw(
+      `  The marketplace didn't say whether it's live yet. Run \`${check.join(" ")}\` to check.`,
+    );
   }
   for (const warning of body?.warnings ?? []) {
     log.warn(`${warning.file}:${warning.line} — ${warning.message}`);
