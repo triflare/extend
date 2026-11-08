@@ -1,21 +1,14 @@
 import { apiRequest } from "../api.js";
-import { readProjectConfig } from "../project.js";
 import { remoteContext } from "../remote.js";
 
 const DEFAULT_NAME = "extend CLI";
 
-export async function tokenCommand(product, configPath, action, values, log) {
+// A token belongs to an account, not a project, so this works outside one and
+// never reads the project config.
+export async function tokenCommand(product, action, values, log) {
   if (action !== "create") {
     log.error("Try 'extend token create --scopes publish,yank'.");
     return false;
-  }
-
-  // A token belongs to an account, not a project, so this works outside one.
-  let config;
-  try {
-    config = readProjectConfig(configPath);
-  } catch {
-    config = {};
   }
 
   const scopes = (values.scopes ?? "")
@@ -38,7 +31,7 @@ export async function tokenCommand(product, configPath, action, values, log) {
 
   let context;
   try {
-    context = await remoteContext(product, values, config);
+    context = await remoteContext(product, values);
   } catch (err) {
     log.error(err.message);
     return false;

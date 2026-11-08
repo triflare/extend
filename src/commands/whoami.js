@@ -5,7 +5,7 @@ export async function whoamiCommand(product, values, log) {
   const credentials = savedCredentials(product);
   let apiUrl;
   try {
-    apiUrl = resolveApiUrl(product, null, values.api, credentials);
+    apiUrl = resolveApiUrl(product, values.api, credentials);
   } catch (err) {
     log.error(err.message);
     return false;

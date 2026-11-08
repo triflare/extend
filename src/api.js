@@ -8,22 +8,30 @@ export class MarketplaceError extends Error {
     this.problem = problem;
     this.requestId = requestId;
   }
-} // A flag beats the environment, which beats the project, which beats the
-// registry this machine is already signed in to, which beats the product.
-// Without that fourth step a sign-in to a local instance looks like no sign-in
-// at all to the next command. Keeping the default in product.yml means a
-// rebrand moves it too.
-export function resolveApiUrl(product, config, flag, credentials) {
+} // A flag beats the environment, which beats the registry this machine is
+// already signed in to, which beats the product. Without that third step a
+// sign-in to a local instance looks like no sign-in at all to the next command.
+// Project config is deliberately not a source: a token from --token or
+// TRIFLARE_TOKEN must not go to a host that a cloned repository chooses.
+// Keeping the default in product.yml means a rebrand moves it too.
+export function resolveApiUrl(product, flag, credentials) {
   const url =
-    flag ??
-    process.env.TRIFLARE_API ??
-    config?.marketplace?.api ??
-    credentials?.apiUrl ??
-    product.marketplace?.apiUrl;
+    flag ?? process.env.TRIFLARE_API ?? credentials?.apiUrl ?? product.marketplace?.apiUrl;
   if (typeof url !== "string" || url.trim() === "") {
     throw new Error("We don't know which marketplace to talk to. Pass --api or set TRIFLARE_API.");
   }
-  return url.trim().replace(/\/+$/, "");
+  const trimmed = url.trim().replace(/\/+$/, "");
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new Error(`"${trimmed}" isn't a valid marketplace URL.`);
+  }
+  const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname);
+  if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && loopback)) {
+    throw new Error("The marketplace URL must use https, except for localhost.");
+  }
+  return trimmed;
 }
 
 function fieldLines(problem) {

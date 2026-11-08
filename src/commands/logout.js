@@ -16,7 +16,7 @@ export async function logoutCommand(product, values, log) {
 
   let apiUrl;
   try {
-    apiUrl = credentials.apiUrl ?? resolveApiUrl(product, null, values.api);
+    apiUrl = credentials.apiUrl ?? resolveApiUrl(product, values.api);
   } catch (err) {
     log.error(err.message);
     return false;

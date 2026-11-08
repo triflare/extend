@@ -12,7 +12,7 @@ export async function loginCommand(product, values, log) {
   let apiUrl;
   try {
     // Signing in again after an expiry lands on the instance already saved.
-    apiUrl = resolveApiUrl(product, null, values.api, savedCredentials(product));
+    apiUrl = resolveApiUrl(product, values.api, savedCredentials(product));
   } catch (err) {
     log.error(err.message);
     return false;
@@ -46,7 +46,7 @@ export async function loginCommand(product, values, log) {
   log.raw(`  This code expires in ${Math.round(pending.expiresIn / 60)} minutes.`);
 
   const deadline = Date.now() + pending.expiresIn * 1000;
-  let wait = Math.max(1, pending.interval) * 1000;
+  let wait = Math.max(1, Number(pending.interval) || 5) * 1000;
   while (Date.now() < deadline) {
     await sleep(wait);
     try {

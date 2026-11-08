@@ -16,13 +16,13 @@ export function signInMessage({ expired, credentials }, apiUrl) {
 
 // Everything a remote command needs to address the registry, with the messages
 // a developer can act on rather than the raw status.
-export async function remoteContext(product, values, config) {
+export async function remoteContext(product, values) {
   const credentials = savedCredentials(product);
-  const apiUrl = resolveApiUrl(product, config, values.api, credentials);
-  const { token, expired } = tokenFor(product, values, apiUrl, credentials);
+  const apiUrl = resolveApiUrl(product, values.api, credentials);
+  const { token, expired, credentials: active } = tokenFor(product, values, apiUrl, credentials);
   if (!token) throw new Error(signInMessage({ expired, credentials }, apiUrl));
   const namespace =
-    values.namespace ?? credentials?.namespace ?? (await whoami(apiUrl, token)).namespace;
+    values.namespace ?? active?.namespace ?? (await whoami(apiUrl, token)).namespace;
   return { apiUrl, token, namespace };
 }
 

@@ -123,7 +123,7 @@ export async function publishCommand(product, configPath, values, log) {
   let context = null;
   if (!values["dry-run"]) {
     try {
-      context = await remoteContext(product, values, config);
+      context = await remoteContext(product, values);
     } catch (err) {
       log.error(err.message);
       return false;
@@ -199,7 +199,10 @@ export async function publishCommand(product, configPath, values, log) {
     }
   }
 
-  const version = response.data;
+  const version =
+    response.data && typeof response.data === "object" && !Array.isArray(response.data)
+      ? response.data
+      : { version: manifest.version };
   const origin = new URL(apiUrl).origin;
   const location = response.headers.get("location");
   const url = location ? new URL(location, origin).toString() : null;

@@ -23,7 +23,7 @@ export async function versionsCommand(product, configPath, values, log) {
   let context;
   try {
     id = extensionIdFrom(config);
-    context = await remoteContext(product, values, config);
+    context = await remoteContext(product, values);
   } catch (err) {
     log.error(err.message);
     return false;

@@ -132,7 +132,7 @@ async function main(args) {
     case "unpublish":
       return (await unpublishCommand(product, configPath, positionals[1], values, log)) ? 0 : 1;
     case "token":
-      return (await tokenCommand(product, configPath, positionals[1], values, log)) ? 0 : 1;
+      return (await tokenCommand(product, positionals[1], values, log)) ? 0 : 1;
     default:
       log.error(
         `We don't recognize that command: "${command}". Try '${brandText(product.command, process.stderr)} help' to see what's available.`,
