@@ -1,4 +1,4 @@
-import { apiRequest, resolveApiUrl, tokenFor } from "../api.js";
+import { apiRequest, resolveApiUrl } from "../api.js";
 import { clearCredentials, readCredentials } from "../credentials.js";
 
 export async function logoutCommand(product, values, log) {
@@ -22,13 +22,13 @@ export async function logoutCommand(product, values, log) {
     return false;
   }
 
-  const { token } = tokenFor(product, values, apiUrl);
-  if (token) {
-    // A session and an automation token are revoked by different routes, and
-    // each only deletes the caller's own row.
+  // Signing out revokes the saved sign-in, never a --token or TRIFLARE_TOKEN
+  // from this invocation. A session and an automation token are revoked by
+  // different routes, and each only deletes the caller's own row.
+  if (credentials.token) {
     const path = credentials.kind === "token" ? "/tokens/current" : "/sessions/current";
     try {
-      await apiRequest(apiUrl, path, { method: "DELETE", token });
+      await apiRequest(apiUrl, path, { method: "DELETE", token: credentials.token });
     } catch (err) {
       if (err.status !== 401) log.warn(`We couldn't end the sign-in on the server: ${err.message}`);
     }

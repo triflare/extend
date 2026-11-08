@@ -199,24 +199,28 @@ export async function publishCommand(product, configPath, values, log) {
     }
   }
 
-  const version =
+  const body =
     response.data && typeof response.data === "object" && !Array.isArray(response.data)
       ? response.data
-      : { version: manifest.version };
+      : null;
+  const version = body?.version ?? manifest.version;
   const origin = new URL(apiUrl).origin;
   const location = response.headers.get("location");
   const url = location ? new URL(location, origin).toString() : null;
-  if (version.status === "pending") {
+  if (body?.status === "pending") {
     log.success(
-      `Uploaded @${namespace}/${manifest.id}@${version.version}. It's waiting for review${url ? `: ${url}` : "."}`,
+      `Uploaded @${namespace}/${manifest.id}@${version}. It's waiting for review${url ? `: ${url}` : "."}`,
     );
     log.raw("  An account's first publish is reviewed before it goes live.");
-  } else {
-    log.success(`Published @${namespace}/${manifest.id}@${version.version}.`);
-    if (version.dist?.downloadUrl) log.raw(`  ${version.dist.downloadUrl}`);
+  } else if (body?.status === "published") {
+    log.success(`Published @${namespace}/${manifest.id}@${version}.`);
+    if (body.dist?.downloadUrl) log.raw(`  ${body.dist.downloadUrl}`);
     else if (url) log.raw(`  ${url}`);
+  } else {
+    log.success(`Uploaded @${namespace}/${manifest.id}@${version}.`);
+    log.raw("  The marketplace didn't say whether it's live yet. Run `extend versions` to check.");
   }
-  for (const warning of version.warnings ?? []) {
+  for (const warning of body?.warnings ?? []) {
     log.warn(`${warning.file}:${warning.line} — ${warning.message}`);
   }
   if (response.headers.get("idempotent-replayed")) {
