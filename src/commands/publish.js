@@ -226,10 +226,12 @@ export async function publishCommand(product, configPath, values, log) {
     const check = ["extend versions"];
     if (values.namespace) check.push(`--namespace ${values.namespace}`);
     if (values.api) check.push(`--api ${values.api}`);
-    if (values.config) check.push(`--config ${values.config}`);
+    if (values.config) check.push(`--config '${values.config.replaceAll("'", "'\\''")}'`);
     log.raw(
       `  The marketplace didn't say whether it's live yet. Run \`${check.join(" ")}\` to check.`,
     );
+    if (values.token)
+      log.raw("  Set TRIFLARE_TOKEN to the token you used with --token before running it.");
   }
   for (const warning of body?.warnings ?? []) {
     log.warn(`${warning.file}:${warning.line} — ${warning.message}`);
