@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, statSync, watch } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +15,41 @@ const DEBOUNCE_MS = 50;
 // nothing else in the project is worth a rebuild. Without this, a log file
 // written into the project rebuilds on every line it writes.
 const SOURCE_EXTENSIONS = new Set([".js", ".mjs", ".cjs", ".json", ".yml", ".yaml"]);
+
+function fileDigest(path) {
+  try {
+    return createHash("sha1").update(readFileSync(path)).digest("hex");
+  } catch {
+    return null;
+  }
+}
+
+// A pre-build hook that regenerates a source file looks like an edit to the
+// watcher, and rebuilding for it runs the hook again. Recording every source
+// file's bytes after a build lets an event carrying identical content pass.
+function snapshotDigests(root, skipDirectory, skipFile) {
+  const digests = new Map();
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!skipDirectory(path)) walk(path);
+        continue;
+      }
+      if (!entry.isFile() || skipFile(path)) continue;
+      const digest = fileDigest(path);
+      if (digest) digests.set(path, digest);
+    }
+  };
+  walk(root);
+  return digests;
+}
 
 // Node caches imported modules for the life of the process, and the entry point
 // pulls in every handler through static imports that a cache-busting query
@@ -89,6 +125,7 @@ export async function devCommand(product, configPath, { port, out }, log) {
   }
 
   let source = null;
+  let digests = null;
   let title = product.name;
   let output;
   let outputRel = "";
@@ -120,7 +157,10 @@ export async function devCommand(product, configPath, { port, out }, log) {
   // yet, so a child would only add a second cold Node start before the server
   // can answer its first request.
   const compileInProcess = async () => {
-    const result = await buildProduct(product, configPath, out);
+    const result = await buildProduct(product, configPath, out, {
+      onHook: (phase, command) => log.progress(`Running the ${phase} build hook: ${command}`),
+    });
+    digests = snapshotDigests(root, skipDirectory, skipFile);
     if (!result.ok) {
       log.error(
         ["We found a few things to fix. Here's what we noticed:", ...result.errors].join("\n"),
@@ -145,6 +185,7 @@ export async function devCommand(product, configPath, { port, out }, log) {
       return false;
     }
     const result = await buildInChildProcess(configPath, output);
+    digests = snapshotDigests(root, skipDirectory, skipFile);
     if (!result.ok) {
       log.error("We hit a problem while building. Here's what we found:");
       if (result.stderr.trim()) log.raw(result.stderr.trimEnd());
@@ -207,6 +248,8 @@ export async function devCommand(product, configPath, { port, out }, log) {
   }
 
   const stopWatching = watchTree(root, skipDirectory, skipFile, (path) => {
+    // A hook writing the same bytes back is not a change worth rebuilding for.
+    if (digests?.get(path) === fileDigest(path)) return;
     pending ??= relative(process.cwd(), path);
     if (timer) return;
     timer = setTimeout(() => {
