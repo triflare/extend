@@ -1,7 +1,7 @@
 # Identity
 name: "Triflare Extend"
 command: "extend"
-version: "0.2.0"
+version: "0.3.0"
 tagline: "Make your ideas real with powerful extensions."
 author: "Triflare"
 homepage: "https://github.com/triflare/extend"
@@ -19,6 +19,14 @@ symbols:
   error: "✗"
   progress: "~"
   bullet: "•"
+
+# Marketplace
+marketplace:
+  apiUrl: "https://marketplace.sdisk.us/api/v1"
+  clientName: "Triflare Extend"
+  configDirectory: "triflare"
+  maxSourceBytes: 1048576
+  publishTimeoutMs: 120000
 
 # Defaults
 defaults:
