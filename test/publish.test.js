@@ -52,31 +52,45 @@ test("publish recovery retains options and explains how to reuse a flag token", 
   assert.ok(!messages.join("\n").includes(secret));
 });
 
-test("publish recovery keeps the existing guidance for an environment token", async (t) => {
-  const previousToken = process.env.TRIFLARE_TOKEN;
-  process.env.TRIFLARE_TOKEN = "environment-token";
-  t.after(() => {
-    if (previousToken === undefined) delete process.env.TRIFLARE_TOKEN;
-    else process.env.TRIFLARE_TOKEN = previousToken;
-  });
-  const config = fileURLToPath(new URL("../test-fixtures/basic/extend.yml", import.meta.url));
-  const messages = [];
-  const log = Object.fromEntries(
-    ["error", "warn", "info", "progress", "success", "raw"].map((level) => [
-      level,
-      (message) => messages.push(message),
-    ]),
-  );
-  t.mock.method(globalThis, "fetch", async (_url, options) => {
-    assert.equal(options.headers.authorization, "Bearer environment-token");
-    return Response.json({});
-  });
+for (const values of [
+  { namespace: "demo" },
+  { api: "https://example.com/v1?value=$HOME&other=$(printf injected)" },
+  {},
+]) {
+  test(`publish recovery with an environment token and options ${JSON.stringify(values)}`, async (t) => {
+    const previousToken = process.env.TRIFLARE_TOKEN;
+    process.env.TRIFLARE_TOKEN = "environment-token";
+    t.after(() => {
+      if (previousToken === undefined) delete process.env.TRIFLARE_TOKEN;
+      else process.env.TRIFLARE_TOKEN = previousToken;
+    });
+    const config = fileURLToPath(new URL("../test-fixtures/basic/extend.yml", import.meta.url));
+    const messages = [];
+    const log = Object.fromEntries(
+      ["error", "warn", "info", "progress", "success", "raw"].map((level) => [
+        level,
+        (message) => messages.push(message),
+      ]),
+    );
+    t.mock.method(globalThis, "fetch", async (_url, options) => {
+      assert.equal(options.headers.authorization, "Bearer environment-token");
+      return Response.json(options.method === "POST" ? {} : { namespace: "demo" });
+    });
 
-  assert.equal(await publishCommand(loadProduct(), config, { namespace: "demo" }, log), true);
-  assert.ok(
-    messages.includes(
-      "  The marketplace didn't say whether it's live yet. Run `extend versions --namespace demo` to check.",
-    ),
-  );
-  assert.ok(!messages.join("\n").includes("TRIFLARE_TOKEN"));
-});
+    assert.equal(await publishCommand(loadProduct(), config, values, log), true);
+    const options = Object.entries(values).map(
+      ([name, value]) => `    --${name}: ${JSON.stringify(value)}`,
+    );
+    const guidance = messages.find((message) => message.includes("The marketplace didn't say"));
+    assert.equal(
+      guidance,
+      options.length > 0
+        ? [
+            "  The marketplace didn't say whether it's live yet. Run `extend versions` with these option values to check (shown as JSON strings; quote them for your shell):",
+            ...options,
+          ].join("\n")
+        : "  The marketplace didn't say whether it's live yet. Run `extend versions` to check.",
+    );
+    assert.ok(!messages.join("\n").includes("TRIFLARE_TOKEN"));
+  });
+}

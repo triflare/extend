@@ -223,13 +223,10 @@ export async function publishCommand(product, configPath, values, log) {
     else if (url) log.raw(`  ${url}`);
   } else {
     log.success(`Uploaded @${namespace}/${manifest.id}@${version}.`);
-    const check = ["extend versions"];
-    if (values.namespace) check.push(`--namespace ${values.namespace}`);
-    if (values.api) check.push(`--api ${values.api}`);
-    if (values.config) {
-      const options = ["namespace", "api", "config"]
-        .filter((name) => values[name])
-        .map((name) => `    --${name}: ${JSON.stringify(values[name])}`);
+    const options = ["namespace", "api", "config"]
+      .filter((name) => values[name])
+      .map((name) => `    --${name}: ${JSON.stringify(values[name])}`);
+    if (options.length > 0) {
       log.raw(
         [
           "  The marketplace didn't say whether it's live yet. Run `extend versions` with these option values to check (shown as JSON strings; quote them for your shell):",
@@ -238,7 +235,7 @@ export async function publishCommand(product, configPath, values, log) {
       );
     } else {
       log.raw(
-        `  The marketplace didn't say whether it's live yet. Run \`${check.join(" ")}\` to check.`,
+        "  The marketplace didn't say whether it's live yet. Run `extend versions` to check.",
       );
     }
     if (values.token)
