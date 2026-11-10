@@ -288,6 +288,13 @@ test("dev runs hooks and settles when one regenerates a source file", async () =
         () => hookLines(dir) > settled,
         `the rebuild never ran the hook\n${dev.state.stdout}${dev.state.stderr}`,
       );
+      const rebuilt = hookLines(dir);
+      await new Promise((done) => setTimeout(done, 2000));
+      assert.equal(
+        hookLines(dir),
+        rebuilt,
+        `the regenerated file kept triggering rebuilds after the edit\n${dev.state.stdout}${dev.state.stderr}`,
+      );
     } finally {
       await stopDev(dev);
     }
