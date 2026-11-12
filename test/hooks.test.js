@@ -245,6 +245,18 @@ test("a malformed build setting is named", () => {
   }
 });
 
+test("a phase that isn't before or after is rejected", () => {
+  const dir = initProject();
+  try {
+    appendConfig(dir, "build:\n  afterAll:\n    - node scripts/inline.js");
+    const result = runCli(["build"], dir);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /build" has unknown field "afterAll"/);
+  } finally {
+    clean(dir);
+  }
+});
+
 test("dev runs hooks and settles when one regenerates a source file", async () => {
   const dir = initProject();
   try {

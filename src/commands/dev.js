@@ -51,6 +51,19 @@ function snapshotDigests(root, skipDirectory, skipFile) {
   return digests;
 }
 
+// The snapshot is taken after a build so a hook that rewrites a source file
+// doesn't look like an edit and run itself again. An edit that lands while the
+// build is running would be absorbed into that snapshot, so a file whose bytes
+// changed during the build keeps its pre-build digest and stays eligible for
+// the next rebuild.
+function mergeDigests(before, after) {
+  const merged = new Map(after);
+  for (const [path, digest] of before) {
+    if (after.has(path) && after.get(path) !== digest) merged.set(path, digest);
+  }
+  return merged;
+}
+
 // Node caches imported modules for the life of the process, and the entry point
 // pulls in every handler through static imports that a cache-busting query
 // string can't reach. A child process is the only way to get a build that
@@ -184,8 +197,9 @@ export async function devCommand(product, configPath, { port, out }, log) {
       log.error(err.message);
       return false;
     }
+    const before = snapshotDigests(root, skipDirectory, skipFile);
     const result = await buildInChildProcess(configPath, output);
-    digests = snapshotDigests(root, skipDirectory, skipFile);
+    digests = mergeDigests(before, snapshotDigests(root, skipDirectory, skipFile));
     if (!result.ok) {
       log.error("We hit a problem while building. Here's what we found:");
       if (result.stderr.trim()) log.raw(result.stderr.trimEnd());

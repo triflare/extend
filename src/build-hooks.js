@@ -11,6 +11,13 @@ export function readBuildHooks(config) {
   if (!build || typeof build !== "object" || Array.isArray(build)) {
     throw new Error('"build" must be a mapping');
   }
+  // Only the two phases run, so a misspelled phase would otherwise sit in the
+  // config looking like it does something.
+  for (const key of Object.keys(build)) {
+    if (key !== "before" && key !== "after") {
+      throw new Error(`"build" has unknown field "${key}"; it only supports "before" and "after"`);
+    }
+  }
   const hooks = {};
   for (const phase of ["before", "after"]) {
     const commands = build[phase] ?? [];
