@@ -35,6 +35,29 @@
       "type": "string",
       "description": "Where extend build writes the compiled extension. Defaults to dist/extension.js."
     },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Shell commands to run around a build. Hooks run in the project directory and can rewrite the build output. Omit to run nothing.",
+      "properties": {
+        "before": {
+          "type": "array",
+          "description": "Commands to run before the project is validated, in order. Use them to generate files the entry point imports.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "after": {
+          "type": "array",
+          "description": "Commands to run after the compiled extension is written, in order. The output path is passed as EXTEND_OUTPUT.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
     "pack": {
       "type": "object",
       "additionalProperties": false,
