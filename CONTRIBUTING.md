@@ -107,7 +107,7 @@ Add `!` when a change breaks existing projects or command usage, for example `fe
 
 ## Pull requests
 
-Branch from `develop`, keep the change focused, and include tests for behavior changes. Before opening a pull request, run:
+Branch from `alpha`, keep the change focused, and include tests for behavior changes. Before opening a pull request, run:
 
 ```bash
 npm run check
@@ -117,4 +117,14 @@ CI runs lint, formatting, and tests on Node.js 24. In the pull request, describe
 
 ## Releases
 
-Bump the version in both `package.json` and `product.yml`, then push a matching v-prefixed tag, such as `v0.1.0`. That push is what triggers publication: the CD workflow runs on the tag and publishes to npm. Check the publish run afterwards to confirm the release went out.
+Releases are automated with [semantic-release](https://github.com/semantic-release/semantic-release), so do not bump versions or push tags by hand.
+
+| Branch   | Publishes                            | npm dist-tag |
+| -------- | ------------------------------------ | ------------ |
+| `latest` | Stable releases                      | `latest`     |
+| `beta`   | Pre-releases such as `0.4.0-beta.1`  | `beta`       |
+| `alpha`  | Pre-releases such as `0.4.0-alpha.1` | `alpha`      |
+
+When a release branch gets a push, the release workflow runs lint, formatting, and tests, then semantic-release picks the next version from the commit messages. It writes the version to `package.json`, `package-lock.json`, and `product.yml`, updates `CHANGELOG.md`, commits all of that, and creates the matching v-prefixed tag and GitHub release.
+
+The npm package is published to npm's staging area. A maintainer has to approve it with `npm stage approve <stage-id>` or from the Staged Packages tab on npmjs.com before it goes live.

@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    branches: [latest, beta, alpha]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      version: ${{ steps.release.outputs.version }}
+      channel: ${{ steps.release.outputs.channel }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: Set up npm
+        # `npm stage` (staged publishing) requires npm >= 11.15 and dist-tags
+        # over OIDC trusted publishing require >= 11.21; Node 24 bundles 11.16.
+        run: npm install --global npm@^11.21
+      - name: Install dependencies
+        run: npm ci
+      - name: Check for linting errors
+        run: npm run lint
+      - name: Check for formatting errors
+        run: npm run format:check
+      - name: Run unit tests
+        run: npm test
+      - name: Release
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "released=false" >> "$GITHUB_OUTPUT"
+          npx semantic-release
+      - name: Note staged npm release
+        # Publishing is staged: semantic-release uploads the tarball to npm's
+        # staging area and a maintainer must approve it with 2FA before it goes
+        # live. Surface that here so the release is not mistaken for published.
+        if: steps.release.outputs.released == 'true'
+        run: |
+          echo "::notice title=Staged npm release::@triflare/extend@${{ steps.release.outputs.version }} was staged on npm (dist-tag: ${{ steps.release.outputs.channel || 'latest' }}). Approve it with 'npm stage approve <stage-id>' or in the Staged Packages tab on npmjs.com."

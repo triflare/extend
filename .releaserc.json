@@ -1,0 +1,38 @@
+{
+  "branches": [
+    "latest",
+    { "name": "beta", "prerelease": "beta", "channel": "beta" },
+    { "name": "alpha", "prerelease": "alpha", "channel": "alpha" }
+  ],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "type": "hotfix", "release": "patch" },
+          { "type": "build", "release": false }
+        ]
+      }
+    ],
+    ["@semantic-release/release-notes-generator", { "preset": "conventionalcommits" }],
+    ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }],
+    ["@semantic-release/npm", { "npmPublish": false }],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "node scripts/set-version.js ${nextRelease.version} && node scripts/check-version.js ${nextRelease.version}",
+        "publishCmd": "npm stage publish --tag ${nextRelease.channel || 'latest'} --provenance --access public",
+        "successCmd": "node scripts/release-output.js ${nextRelease.version} ${nextRelease.channel}"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md", "package.json", "package-lock.json", "product.yml"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    "@semantic-release/github"
+  ]
+}
