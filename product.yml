@@ -1,7 +1,7 @@
 # Identity
 name: "Triflare Extend"
 command: "extend"
-version: "0.3.0"
+version: "0.4.0-alpha.1"
 tagline: "Make your ideas real with powerful extensions."
 author: "Triflare"
 homepage: "https://github.com/triflare/extend"
