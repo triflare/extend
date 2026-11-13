@@ -28,9 +28,9 @@ test("init scaffolds a project that builds", () => {
     }
 
     const scaffold = readFileSync(join(dir, "extend.yml"), "utf8");
-    assert.match(scaffold, /color1: "#E8590C"/);
-    assert.match(scaffold, /color2: "#BA470A"/);
-    assert.match(scaffold, /color3: "#8B3507"/);
+    assert.match(scaffold, /color1: "#FFA448"/);
+    assert.match(scaffold, /color2: "#E67E22"/);
+    assert.match(scaffold, /color3: "#D46C10"/);
 
     const validate = runCli(["validate"], dir);
     assert.equal(validate.status, 0, validate.stderr);

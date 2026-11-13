@@ -9,9 +9,9 @@ homepage: "https://github.com/triflare/extend"
 # Branding
 branding:
   colors:
-    primary: "#E8590C"
-    secondary: "#BA470A"
-    tertiary: "#8B3507"
+    primary: "#FFA448"
+    secondary: "#E67E22"
+    tertiary: "#D46C10"
 
 # Terminal Glyphs
 symbols:

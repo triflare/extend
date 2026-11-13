@@ -16,9 +16,9 @@ test("loadProduct reads product.yml", () => {
   assert.equal(product.symbols.error, "✗");
   assert.equal(product.symbols.bullet, "•");
   assert.deepEqual(product.branding.colors, {
-    primary: "#E8590C",
-    secondary: "#BA470A",
-    tertiary: "#8B3507",
+    primary: "#FFA448",
+    secondary: "#E67E22",
+    tertiary: "#D46C10",
   });
   assert.equal(product.defaults.devPort, 8000);
 });

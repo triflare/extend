@@ -12,9 +12,9 @@ const plainStream = () =>
 
 test("brandingColors reads the logo palette", () => {
   assert.deepEqual(brandingColors(), {
-    primary: "#E8590C",
-    secondary: "#BA470A",
-    tertiary: "#8B3507",
+    primary: "#FFA448",
+    secondary: "#E67E22",
+    tertiary: "#D46C10",
   });
 });
 
@@ -23,9 +23,9 @@ test("brandText paints text with each brand color", () => {
   process.env.FORCE_COLOR = "1";
   try {
     const text = brandText("Extend");
-    assert.ok(text.includes("\x1b[38;2;232;89;12m"));
-    assert.ok(text.includes("\x1b[38;2;186;71;10m"));
-    assert.ok(text.includes("\x1b[38;2;139;53;7m"));
+    assert.ok(text.includes("\x1b[38;2;255;164;72m"));
+    assert.ok(text.includes("\x1b[38;2;230;126;34m"));
+    assert.ok(text.includes("\x1b[38;2;212;108;16m"));
   } finally {
     if (previous === undefined) delete process.env.FORCE_COLOR;
     else process.env.FORCE_COLOR = previous;
