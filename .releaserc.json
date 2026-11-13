@@ -21,7 +21,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "node scripts/set-version.js ${nextRelease.version} && node scripts/check-version.js ${nextRelease.version}",
+        "prepareCmd": "node scripts/set-version.js ${nextRelease.version} && node scripts/check-version.js ${nextRelease.version} && npx prettier --write CHANGELOG.md",
         "publishCmd": "npm stage publish --tag ${nextRelease.channel || 'latest'} --provenance --access public",
         "successCmd": "node scripts/release-output.js ${nextRelease.version} ${nextRelease.channel}"
       }
